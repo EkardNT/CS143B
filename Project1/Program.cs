@@ -23,6 +23,7 @@ namespace Project1
 				: (IInputSourceFactory)new ConsoleInputSourceFactory());
 			kernel.Bind<IActivator>().ToConstant(new NinjectActivator(kernel)).InSingletonScope();
 			kernel.Bind<ICommandRegistry>().To<CommandRegistry>().InSingletonScope();
+			kernel.Bind<IOutput>().To<ConsoleOutput>().InSingletonScope();
 
 			return kernel;
 		}

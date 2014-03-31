@@ -32,427 +32,22 @@ namespace Project1
 		void Execute();
 	}
 
-	public class InitCommand : ICommand
+	public abstract class CommandBase : ICommand
 	{
-		public string Name
+		protected CommandBase(IOutput output)
 		{
-			get { return "init"; }
+			Output = output;
 		}
 
-		public string Usage
-		{
-			get { return "init"; }
-		}
-
-		public string Description
-		{
-			get { return "Restores the system to its initial state."; }
-		}
-
-		public bool LoadParams(string[] tokens)
-		{
-			return true;
-		}
-
-		public void Execute()
-		{
-		}
-	}
-
-	public class QuitCommand : ICommand
-	{
-		public string Name
-		{
-			get { return "quit"; }
-		}
-
-		public string Usage
-		{
-			get { return "quit"; }
-		}
-
-		public string Description
-		{
-			get { return "Terminates the execution of the system."; }
-		}
-
-		public bool LoadParams(string[] tokens)
-		{
-			return true;
-		}
-
-		public void Execute()
-		{
-
-		}
-	}
-
-	public class CreateCommand : ICommand
-	{
-		private string processName;
-		private int priority;
-
-		public string Name
-		{
-			get { return "cr"; }
-		}
-
-		public string Usage
-		{
-			get { return "cr <name> <priority>"; }
-		}
-
-		public string Description
-		{
-			get
-			{
-				return
-					"Creates a new process <name> at the priority level <priority>. <name> is a single character. <priority> can be 1 or 2.";
-			}
-		}
-
-		public bool LoadParams(string[] tokens)
-		{
-			return tokens.TryLoadProcessName(0, out processName)
-			       && tokens.TryLoadPriority(1, out priority);
-		}
-
-		public void Execute()
-		{
-
-		}
-	}
-
-	public class DestroyCommand : ICommand
-	{
-		private string processName;
-
-		public string Name
-		{
-			get { return "de"; }
-		}
-
-		public string Usage
-		{
-			get { return "de <name>"; }
-		}
-
-		public string Description
-		{
-			get { return "Destroys the process <name> and all its descendants."; }
-		}
-
-		public bool LoadParams(string[] tokens)
-		{
-			return tokens.TryLoadProcessName(0, out processName);
-		}
-
-		public void Execute()
-		{
-
-		}
-	}
-
-	public class RequestCommand : ICommand
-	{
-		private string resourceName;
-		private int count;
-
-		public string Name
-		{
-			get { return "req"; }
-		}
-
-		public string Usage
-		{
-			get { return "req <name> <count>"; }
-		}
-
-		public string Description
-		{
-			get
-			{
-				return
-					"Requests <count> number of units of the resource <name>. <name> is a single character. <count> is a positive integer.";
-			}
-		}
-
-		public bool LoadParams(string[] tokens)
-		{
-			return tokens.TryLoadResourceName(0, out resourceName)
-			       && tokens.TryLoadCount(1, out count);
-		}
-
-		public void Execute()
-		{
-		}
-	}
-
-	public class ReleaseCommand : ICommand
-	{
-		private string resourceName;
-		private int count;
-
-		public string Name
-		{
-			get { return "rel"; }
-		}
-
-		public string Usage
-		{
-			get { return "rel <name> <count>"; }
-		}
-
-		public string Description
-		{
-			get
-			{
-				return
-					"Releases <count> number of units of the resource <name>. <name> is a single character. <count> is a positive integer.";
-			}
-		}
-
-		public bool LoadParams(string[] tokens)
-		{
-			return tokens.TryLoadResourceName(0, out resourceName)
-				   && tokens.TryLoadCount(1, out count);
-		}
-
-		public void Execute()
-		{
-		}
-	}
-
-	public class TimeoutCommand : ICommand
-	{
-		public string Name
-		{
-			get { return "to"; }
-		}
-
-		public string Usage
-		{
-			get { return "to"; }
-		}
-
-		public string Description
-		{
-			get { return "Triggers a scheduling timeout."; }
-		}
-
-		public bool LoadParams(string[] tokens)
-		{
-			return true;
-		}
-
-		public void Execute()
-		{
-		}
-	}
-
-	public class RequestIOCommand : ICommand
-	{
-		public string Name
-		{
-			get { return "rio"; }
-		}
-
-		public string Usage
-		{
-			get { return "rio"; }
-		}
-
-		public string Description
-		{
-			get { return "Requests IO."; }
-		}
-
-		public bool LoadParams(string[] tokens)
-		{
-			return true;
-		}
-
-		public void Execute()
-		{
-
-		}
-	}
-
-	public class CompleteIOCommand : ICommand
-	{
-		public string Name
-		{
-			get { return "ioc"; }
-		}
-
-		public string Usage
-		{
-			get { return "ioc"; }
-		}
-
-		public string Description
-		{
-			get { return "Completes IO."; }
-		}
-
-		public bool LoadParams(string[] tokens)
-		{
-			return true;
-		}
-
-		public void Execute()
-		{
-
-		}
-	}
-
-	public class ShowProcessCommand : ICommand
-	{
-		private string processName;
-
-		public string Name
-		{
-			get { return "show-proc"; }
-		}
-
-		public string Usage
-		{
-			get { return "show-proc <name>"; }
-		}
-
-		public string Description
-		{
-			get { return "Displays information about the process named <name>. <name> is a single character."; }
-		}
-
-		public bool LoadParams(string[] tokens)
-		{
-			return tokens.TryLoadProcessName(0, out processName);
-		}
-
-		public void Execute()
-		{
-			throw new System.NotImplementedException();
-		}
-	}
-
-	public class ShowResourceCommand : ICommand
-	{
-		private string resourceName;
-
-		public string Name
-		{
-			get { return "show-res"; }
-		}
-
-		public string Usage
-		{
-			get { return "show-res <name>"; }
-		}
-
-		public string Description
-		{
-			get { return "Displays information about the resource named <name>."; }
-		}
-
-		public bool LoadParams(string[] tokens)
-		{
-			return tokens.TryLoadResourceName(0, out resourceName);
-		}
-
-		public void Execute()
-		{
-
-		}
-	}
-
-	public class ListProcessesCommand : ICommand
-	{
-		public string Name
-		{
-			get { return "list-proc"; }
-		}
-
-		public string Usage
-		{
-			get { return "list-proc"; }
-		}
-
-		public string Description
-		{
-			get { return "Lists all processes and their statuses."; }
-		}
-
-		public bool LoadParams(string[] tokens)
-		{
-			return true;
-		}
-
-		public void Execute()
-		{
-
-		}
-	}
-
-	public class ListResourcesCommand : ICommand
-	{
-		public string Name
-		{
-			get { return "list-res"; }
-		}
+		protected IOutput Output { get; private set; }
 
-		public string Usage
-		{
-			get { return "list-res"; }
-		}
-
-		public string Description
-		{
-			get { return "Lists all resources and their statuses."; }
-		}
-
-		public bool LoadParams(string[] tokens)
-		{
-			return true;
-		}
-
-		public void Execute()
-		{
-
-		}
-	}
-
-	public class HelpCommand : ICommand
-	{
-		public string Name
-		{
-			get { return "help"; }
-		}
-
-		public string Usage
-		{
-			get { return "help"; }
-		}
-
-		public string Description
-		{
-			get { return "Describes available commands and their usages."; }
-		}
-
-		public bool LoadParams(string[] tokens)
-		{
-			return true;
-		}
-
-		public void Execute()
-		{
-
-		}
-	}
+		public abstract string Name { get; }
+		public abstract string Usage { get; }
+		public abstract string Description { get; }
+		public abstract bool LoadParams(string[] tokens);
+		public abstract void Execute();
 
-	public static class ParamLoaders
-	{
-		public static bool TryLoadProcessName(this string[] tokens, int index, out string processName)
+		protected static bool TryLoadProcessName(string[] tokens, int index, out string processName)
 		{
 			processName = null;
 			if (tokens == null || tokens.Length < index)
@@ -462,7 +57,7 @@ namespace Project1
 			return !string.IsNullOrWhiteSpace(processName = tokens[index]);
 		}
 
-		public static bool TryLoadCount(this string[] tokens, int index, out int count)
+		protected static bool TryLoadCount(string[] tokens, int index, out int count)
 		{
 			count = 0;
 			if (tokens == null || tokens.Length < index)
@@ -474,7 +69,7 @@ namespace Project1
 			return true;
 		}
 
-		public static bool TryLoadResourceName(this string[] tokens, int index, out string resourceName)
+		protected static bool TryLoadResourceName(string[] tokens, int index, out string resourceName)
 		{
 			resourceName = null;
 			if (tokens == null || tokens.Length < index)
@@ -482,7 +77,7 @@ namespace Project1
 			return !string.IsNullOrWhiteSpace(resourceName = tokens[index]);
 		}
 
-		public static bool TryLoadPriority(this string[] tokens, int index, out int priority)
+		protected static bool TryLoadPriority(string[] tokens, int index, out int priority)
 		{
 			priority = 0;
 			if (tokens == null || tokens.Length < index)
@@ -490,6 +85,483 @@ namespace Project1
 			if (!int.TryParse(tokens[index], NumberStyles.None, CultureInfo.InvariantCulture, out priority))
 				return false;
 			return priority == 1 || priority == 2;
+		}
+	}
+
+	public class InitCommand : CommandBase
+	{
+		public InitCommand(IOutput output) : base(output)
+		{
+		}
+
+		public override string Name
+		{
+			get { return "init"; }
+		}
+
+		public override string Usage
+		{
+			get { return "init"; }
+		}
+
+		public override string Description
+		{
+			get { return "Restores the system to its initial state."; }
+		}
+
+		public override bool LoadParams(string[] tokens)
+		{
+			return true;
+		}
+
+		public override void Execute()
+		{
+		}
+	}
+
+	public class QuitCommand : CommandBase
+	{
+		public QuitCommand(IOutput output) : base(output)
+		{
+		}
+
+		public override string Name
+		{
+			get { return "quit"; }
+		}
+
+		public override string Usage
+		{
+			get { return "quit"; }
+		}
+
+		public override string Description
+		{
+			get { return "Terminates the execution of the system."; }
+		}
+
+		public override bool LoadParams(string[] tokens)
+		{
+			return true;
+		}
+
+		public override void Execute()
+		{
+
+		}
+	}
+
+	public class CreateCommand : CommandBase
+	{
+		private string processName;
+		private int priority;
+
+		public CreateCommand(IOutput output) : base(output)
+		{
+		}
+
+		public override string Name
+		{
+			get { return "cr"; }
+		}
+
+		public override string Usage
+		{
+			get { return "cr <name> <priority>"; }
+		}
+
+		public override string Description
+		{
+			get
+			{
+				return
+					"Creates a new process <name> at the priority level <priority>. <name> is a single character. <priority> can be 1 or 2.";
+			}
+		}
+
+		public override bool LoadParams(string[] tokens)
+		{
+			return TryLoadProcessName(tokens, 0, out processName)
+			       && TryLoadPriority(tokens, 1, out priority);
+		}
+
+		public override void Execute()
+		{
+
+		}
+	}
+
+	public class DestroyCommand : CommandBase
+	{
+		private string processName;
+
+		public DestroyCommand(IOutput output) : base(output)
+		{
+		}
+
+		public override string Name
+		{
+			get { return "de"; }
+		}
+
+		public override string Usage
+		{
+			get { return "de <name>"; }
+		}
+
+		public override string Description
+		{
+			get { return "Destroys the process <name> and all its descendants."; }
+		}
+
+		public override bool LoadParams(string[] tokens)
+		{
+			return TryLoadProcessName(tokens, 0, out processName);
+		}
+
+		public override void Execute()
+		{
+
+		}
+	}
+
+	public class RequestCommand : CommandBase
+	{
+		private string resourceName;
+		private int count;
+
+		public RequestCommand(IOutput output) : base(output)
+		{
+		}
+
+		public override string Name
+		{
+			get { return "req"; }
+		}
+
+		public override string Usage
+		{
+			get { return "req <name> <count>"; }
+		}
+
+		public override string Description
+		{
+			get
+			{
+				return
+					"Requests <count> number of units of the resource <name>. <name> is a single character. <count> is a positive integer.";
+			}
+		}
+
+		public override bool LoadParams(string[] tokens)
+		{
+			return TryLoadResourceName(tokens, 0, out resourceName)
+			       && TryLoadCount(tokens, 1, out count);
+		}
+
+		public override void Execute()
+		{
+		}
+	}
+
+	public class ReleaseCommand : CommandBase
+	{
+		private string resourceName;
+		private int count;
+
+		public ReleaseCommand(IOutput output) : base(output)
+		{
+		}
+
+		public override string Name
+		{
+			get { return "rel"; }
+		}
+
+		public override string Usage
+		{
+			get { return "rel <name> <count>"; }
+		}
+
+		public override string Description
+		{
+			get
+			{
+				return
+					"Releases <count> number of units of the resource <name>. <name> is a single character. <count> is a positive integer.";
+			}
+		}
+
+		public override bool LoadParams(string[] tokens)
+		{
+			return TryLoadResourceName(tokens, 0, out resourceName)
+			       && TryLoadCount(tokens, 1, out count);
+		}
+
+		public override void Execute()
+		{
+		}
+	}
+
+	public class TimeoutCommand : CommandBase
+	{
+		public TimeoutCommand(IOutput output) : base(output)
+		{
+		}
+
+		public override string Name
+		{
+			get { return "to"; }
+		}
+
+		public override string Usage
+		{
+			get { return "to"; }
+		}
+
+		public override string Description
+		{
+			get { return "Triggers a scheduling timeout."; }
+		}
+
+		public override bool LoadParams(string[] tokens)
+		{
+			return true;
+		}
+
+		public override void Execute()
+		{
+		}
+	}
+
+	public class RequestIOCommand : CommandBase
+	{
+		public RequestIOCommand(IOutput output) : base(output)
+		{
+		}
+
+		public override string Name
+		{
+			get { return "rio"; }
+		}
+
+		public override string Usage
+		{
+			get { return "rio"; }
+		}
+
+		public override string Description
+		{
+			get { return "Requests IO."; }
+		}
+
+		public override bool LoadParams(string[] tokens)
+		{
+			return true;
+		}
+
+		public override void Execute()
+		{
+
+		}
+	}
+
+	public class CompleteIOCommand : CommandBase
+	{
+		public CompleteIOCommand(IOutput output) : base(output)
+		{
+		}
+
+		public override string Name
+		{
+			get { return "ioc"; }
+		}
+
+		public override string Usage
+		{
+			get { return "ioc"; }
+		}
+
+		public override string Description
+		{
+			get { return "Completes IO."; }
+		}
+
+		public override bool LoadParams(string[] tokens)
+		{
+			return true;
+		}
+
+		public override void Execute()
+		{
+
+		}
+	}
+
+	public class ShowProcessCommand : CommandBase
+	{
+		private string processName;
+
+		public ShowProcessCommand(IOutput output) : base(output)
+		{
+		}
+
+		public override string Name
+		{
+			get { return "show-proc"; }
+		}
+
+		public override string Usage
+		{
+			get { return "show-proc <name>"; }
+		}
+
+		public override string Description
+		{
+			get { return "Displays information about the process named <name>. <name> is a single character."; }
+		}
+
+		public override bool LoadParams(string[] tokens)
+		{
+			return TryLoadProcessName(tokens, 0, out processName);
+		}
+
+		public override void Execute()
+		{
+			throw new System.NotImplementedException();
+		}
+	}
+
+	public class ShowResourceCommand : CommandBase
+	{
+		private string resourceName;
+
+		public ShowResourceCommand(IOutput output) : base(output)
+		{
+		}
+
+		public override string Name
+		{
+			get { return "show-res"; }
+		}
+
+		public override string Usage
+		{
+			get { return "show-res <name>"; }
+		}
+
+		public override string Description
+		{
+			get { return "Displays information about the resource named <name>."; }
+		}
+
+		public override bool LoadParams(string[] tokens)
+		{
+			return TryLoadResourceName(tokens, 0, out resourceName);
+		}
+
+		public override void Execute()
+		{
+
+		}
+	}
+
+	public class ListProcessesCommand : CommandBase
+	{
+		public ListProcessesCommand(IOutput output) : base(output)
+		{
+		}
+
+		public override string Name
+		{
+			get { return "list-proc"; }
+		}
+
+		public override string Usage
+		{
+			get { return "list-proc"; }
+		}
+
+		public override string Description
+		{
+			get { return "Lists all processes and their statuses."; }
+		}
+
+		public override bool LoadParams(string[] tokens)
+		{
+			return true;
+		}
+
+		public override void Execute()
+		{
+
+		}
+	}
+
+	public class ListResourcesCommand : CommandBase
+	{
+		public ListResourcesCommand(IOutput output) : base(output)
+		{
+		}
+
+		public override string Name
+		{
+			get { return "list-res"; }
+		}
+
+		public override string Usage
+		{
+			get { return "list-res"; }
+		}
+
+		public override string Description
+		{
+			get { return "Lists all resources and their statuses."; }
+		}
+
+		public override bool LoadParams(string[] tokens)
+		{
+			return true;
+		}
+
+		public override void Execute()
+		{
+
+		}
+	}
+
+	public class HelpCommand : CommandBase
+	{
+		private readonly ICommandRegistry commandRegistry;
+
+		public HelpCommand(IOutput output, ICommandRegistry commandRegistry) : base(output)
+		{
+			this.commandRegistry = commandRegistry;
+		}
+
+		public override string Name
+		{
+			get { return "help"; }
+		}
+
+		public override string Usage
+		{
+			get { return "help"; }
+		}
+
+		public override string Description
+		{
+			get { return "Describes available commands and their usages."; }
+		}
+
+		public override bool LoadParams(string[] tokens)
+		{
+			return true;
+		}
+
+		public override void Execute()
+		{
+
 		}
 	}
 }
