@@ -1,11 +1,34 @@
-﻿namespace Project1
+﻿using System.Globalization;
+
+namespace Project1
 {
 	public interface ICommand
 	{
+		/// <summary>
+		/// The name the user must input to run the command.
+		/// </summary>
 		string Name { get; }
+
+		/// <summary>
+		/// Explanatory usage, of the form "command-name &lt;param1&gt; &lt;param2&gt;...
+		/// </summary>
 		string Usage { get; }
+
+		/// <summary>
+		/// What the command does.
+		/// </summary>
 		string Description { get; }
-		bool ParseParameters(string[] parameters);
+
+		/// <summary>
+		/// Attempts to retrieve any required parameter data from the provided
+		/// user input tokens. Returns true if the required parameters were
+		/// successfully retrieved, false otherwise.
+		/// </summary>
+		bool LoadParams(string[] tokens);
+
+		/// <summary>
+		/// Executes the command.
+		/// </summary>
 		void Execute();
 	}
 
@@ -26,14 +49,13 @@
 			get { return "Restores the system to its initial state."; }
 		}
 
-		public bool ParseParameters(string[] parameters)
+		public bool LoadParams(string[] tokens)
 		{
 			return true;
 		}
 
 		public void Execute()
 		{
-
 		}
 	}
 
@@ -54,7 +76,7 @@
 			get { return "Terminates the execution of the system."; }
 		}
 
-		public bool ParseParameters(string[] parameters)
+		public bool LoadParams(string[] tokens)
 		{
 			return true;
 		}
@@ -67,6 +89,9 @@
 
 	public class CreateCommand : ICommand
 	{
+		private string processName;
+		private int priority;
+
 		public string Name
 		{
 			get { return "cr"; }
@@ -86,9 +111,10 @@
 			}
 		}
 
-		public bool ParseParameters(string[] parameters)
+		public bool LoadParams(string[] tokens)
 		{
-			return false;
+			return tokens.TryLoadProcessName(0, out processName)
+			       && tokens.TryLoadPriority(1, out priority);
 		}
 
 		public void Execute()
@@ -99,6 +125,8 @@
 
 	public class DestroyCommand : ICommand
 	{
+		private string processName;
+
 		public string Name
 		{
 			get { return "de"; }
@@ -114,9 +142,9 @@
 			get { return "Destroys the process <name> and all its descendants."; }
 		}
 
-		public bool ParseParameters(string[] parameters)
+		public bool LoadParams(string[] tokens)
 		{
-			return false;
+			return tokens.TryLoadProcessName(0, out processName);
 		}
 
 		public void Execute()
@@ -127,6 +155,9 @@
 
 	public class RequestCommand : ICommand
 	{
+		private string resourceName;
+		private int count;
+
 		public string Name
 		{
 			get { return "req"; }
@@ -146,9 +177,10 @@
 			}
 		}
 
-		public bool ParseParameters(string[] parameters)
+		public bool LoadParams(string[] tokens)
 		{
-			return false;
+			return tokens.TryLoadResourceName(0, out resourceName)
+			       && tokens.TryLoadCount(1, out count);
 		}
 
 		public void Execute()
@@ -158,6 +190,9 @@
 
 	public class ReleaseCommand : ICommand
 	{
+		private string resourceName;
+		private int count;
+
 		public string Name
 		{
 			get { return "rel"; }
@@ -177,9 +212,10 @@
 			}
 		}
 
-		public bool ParseParameters(string[] parameters)
+		public bool LoadParams(string[] tokens)
 		{
-			return false;
+			return tokens.TryLoadResourceName(0, out resourceName)
+				   && tokens.TryLoadCount(1, out count);
 		}
 
 		public void Execute()
@@ -204,7 +240,7 @@
 			get { return "Triggers a scheduling timeout."; }
 		}
 
-		public bool ParseParameters(string[] parameters)
+		public bool LoadParams(string[] tokens)
 		{
 			return true;
 		}
@@ -231,7 +267,7 @@
 			get { return "Requests IO."; }
 		}
 
-		public bool ParseParameters(string[] parameters)
+		public bool LoadParams(string[] tokens)
 		{
 			return true;
 		}
@@ -259,7 +295,7 @@
 			get { return "Completes IO."; }
 		}
 
-		public bool ParseParameters(string[] parameters)
+		public bool LoadParams(string[] tokens)
 		{
 			return true;
 		}
@@ -272,6 +308,8 @@
 
 	public class ShowProcessCommand : ICommand
 	{
+		private string processName;
+
 		public string Name
 		{
 			get { return "show-proc"; }
@@ -287,9 +325,9 @@
 			get { return "Displays information about the process named <name>. <name> is a single character."; }
 		}
 
-		public bool ParseParameters(string[] parameters)
+		public bool LoadParams(string[] tokens)
 		{
-			return false;
+			return tokens.TryLoadProcessName(0, out processName);
 		}
 
 		public void Execute()
@@ -300,6 +338,8 @@
 
 	public class ShowResourceCommand : ICommand
 	{
+		private string resourceName;
+
 		public string Name
 		{
 			get { return "show-res"; }
@@ -315,9 +355,9 @@
 			get { return "Displays information about the resource named <name>."; }
 		}
 
-		public bool ParseParameters(string[] parameters)
+		public bool LoadParams(string[] tokens)
 		{
-			return false;
+			return tokens.TryLoadResourceName(0, out resourceName);
 		}
 
 		public void Execute()
@@ -343,7 +383,7 @@
 			get { return "Lists all processes and their statuses."; }
 		}
 
-		public bool ParseParameters(string[] parameters)
+		public bool LoadParams(string[] tokens)
 		{
 			return true;
 		}
@@ -371,7 +411,7 @@
 			get { return "Lists all resources and their statuses."; }
 		}
 
-		public bool ParseParameters(string[] parameters)
+		public bool LoadParams(string[] tokens)
 		{
 			return true;
 		}
@@ -399,7 +439,7 @@
 			get { return "Describes available commands and their usages."; }
 		}
 
-		public bool ParseParameters(string[] parameters)
+		public bool LoadParams(string[] tokens)
 		{
 			return true;
 		}
@@ -407,6 +447,49 @@
 		public void Execute()
 		{
 
+		}
+	}
+
+	public static class ParamLoaders
+	{
+		public static bool TryLoadProcessName(this string[] tokens, int index, out string processName)
+		{
+			processName = null;
+			if (tokens == null || tokens.Length < index)
+				return false;
+			if (new StringInfo(tokens[index]).LengthInTextElements > 1)
+				return false;
+			return !string.IsNullOrWhiteSpace(processName = tokens[index]);
+		}
+
+		public static bool TryLoadCount(this string[] tokens, int index, out int count)
+		{
+			count = 0;
+			if (tokens == null || tokens.Length < index)
+				return false;
+			if (!int.TryParse(tokens[index], NumberStyles.None, CultureInfo.InvariantCulture, out count))
+				return false;
+			if (count < 1)
+				return false;
+			return true;
+		}
+
+		public static bool TryLoadResourceName(this string[] tokens, int index, out string resourceName)
+		{
+			resourceName = null;
+			if (tokens == null || tokens.Length < index)
+				return false;
+			return !string.IsNullOrWhiteSpace(resourceName = tokens[index]);
+		}
+
+		public static bool TryLoadPriority(this string[] tokens, int index, out int priority)
+		{
+			priority = 0;
+			if (tokens == null || tokens.Length < index)
+				return false;
+			if (!int.TryParse(tokens[index], NumberStyles.None, CultureInfo.InvariantCulture, out priority))
+				return false;
+			return priority == 1 || priority == 2;
 		}
 	}
 }
