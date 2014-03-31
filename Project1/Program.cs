@@ -21,6 +21,8 @@ namespace Project1
 			kernel.Bind<IInputSourceFactory>().ToConstant(args.Length > 0
 				? (IInputSourceFactory)new ScriptInputSourceFactory(args)
 				: (IInputSourceFactory)new ConsoleInputSourceFactory());
+			kernel.Bind<IActivator>().ToConstant(new NinjectActivator(kernel)).InSingletonScope();
+			kernel.Bind<ICommandRegistry>().To<CommandRegistry>().InSingletonScope();
 
 			return kernel;
 		}
