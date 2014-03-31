@@ -24,6 +24,7 @@ namespace Project1
 			kernel.Bind<IActivator>().ToConstant(new NinjectActivator(kernel)).InSingletonScope();
 			kernel.Bind<ICommandRegistry>().To<CommandRegistry>().InSingletonScope();
 			kernel.Bind<IOutput>().To<ConsoleOutput>().InSingletonScope();
+			kernel.Bind<IMessageBoard>().To<MessageBoard>().InSingletonScope();
 
 			return kernel;
 		}

@@ -16,7 +16,7 @@ namespace Project1
 		public CommandRegistry(IActivator activator)
 		{
 			commands = new Dictionary<string, ICommand>();
-			foreach (var command in typeof (CommandRegistry).Assembly.DefinedTypes
+			foreach (var command in typeof (CommandRegistry).Assembly.GetTypes()
 				.Where(type => typeof (ICommand).IsAssignableFrom(type))
 				.Where(type => !type.IsAbstract && !type.IsInterface)
 				.Select(activator.Create)

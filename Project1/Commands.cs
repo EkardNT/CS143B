@@ -27,25 +27,25 @@ namespace Project1
 		bool LoadParams(string[] tokens);
 
 		/// <summary>
-		/// Executes the command.
+		/// Sends a message into the system message board announcing the command.
 		/// </summary>
-		void Execute();
+		void DispatchMessage();
 	}
 
 	public abstract class CommandBase : ICommand
 	{
-		protected CommandBase(IOutput output)
+		protected CommandBase(IMessageBoard messageBoard)
 		{
-			Output = output;
+			MessageBoard = messageBoard;
 		}
 
-		protected IOutput Output { get; private set; }
+		protected IMessageBoard MessageBoard { get; private set; }
 
 		public abstract string Name { get; }
 		public abstract string Usage { get; }
 		public abstract string Description { get; }
 		public abstract bool LoadParams(string[] tokens);
-		public abstract void Execute();
+		public abstract void DispatchMessage();
 
 		protected static bool TryLoadProcessName(string[] tokens, int index, out string processName)
 		{
@@ -90,7 +90,7 @@ namespace Project1
 
 	public class InitCommand : CommandBase
 	{
-		public InitCommand(IOutput output) : base(output)
+		public InitCommand(IMessageBoard messageBoard) : base(messageBoard)
 		{
 		}
 
@@ -114,14 +114,15 @@ namespace Project1
 			return true;
 		}
 
-		public override void Execute()
+		public override void DispatchMessage()
 		{
+			MessageBoard.Send(this);
 		}
 	}
 
 	public class QuitCommand : CommandBase
 	{
-		public QuitCommand(IOutput output) : base(output)
+		public QuitCommand(IMessageBoard messageBoard) : base(messageBoard)
 		{
 		}
 
@@ -145,9 +146,9 @@ namespace Project1
 			return true;
 		}
 
-		public override void Execute()
+		public override void DispatchMessage()
 		{
-
+			MessageBoard.Send(this);
 		}
 	}
 
@@ -156,8 +157,18 @@ namespace Project1
 		private string processName;
 		private int priority;
 
-		public CreateCommand(IOutput output) : base(output)
+		public CreateCommand(IMessageBoard messageBoard) : base(messageBoard)
 		{
+		}
+
+		public string ProcessName
+		{
+			get { return processName; }
+		}
+
+		public int Priority
+		{
+			get { return priority; }
 		}
 
 		public override string Name
@@ -185,9 +196,9 @@ namespace Project1
 			       && TryLoadPriority(tokens, 1, out priority);
 		}
 
-		public override void Execute()
+		public override void DispatchMessage()
 		{
-
+			MessageBoard.Send(this);
 		}
 	}
 
@@ -195,8 +206,13 @@ namespace Project1
 	{
 		private string processName;
 
-		public DestroyCommand(IOutput output) : base(output)
+		public DestroyCommand(IMessageBoard messageBoard) : base(messageBoard)
 		{
+		}
+
+		public string ProcessName
+		{
+			get { return processName; }
 		}
 
 		public override string Name
@@ -219,9 +235,9 @@ namespace Project1
 			return TryLoadProcessName(tokens, 0, out processName);
 		}
 
-		public override void Execute()
+		public override void DispatchMessage()
 		{
-
+			MessageBoard.Send(this);
 		}
 	}
 
@@ -230,8 +246,18 @@ namespace Project1
 		private string resourceName;
 		private int count;
 
-		public RequestCommand(IOutput output) : base(output)
+		public RequestCommand(IMessageBoard messageBoard) : base(messageBoard)
 		{
+		}
+
+		public string ResourceName
+		{
+			get { return resourceName; }
+		}
+
+		public int Count
+		{
+			get { return count; }
 		}
 
 		public override string Name
@@ -259,8 +285,9 @@ namespace Project1
 			       && TryLoadCount(tokens, 1, out count);
 		}
 
-		public override void Execute()
+		public override void DispatchMessage()
 		{
+			MessageBoard.Send(this);
 		}
 	}
 
@@ -269,8 +296,18 @@ namespace Project1
 		private string resourceName;
 		private int count;
 
-		public ReleaseCommand(IOutput output) : base(output)
+		public ReleaseCommand(IMessageBoard messageBoard) : base(messageBoard)
 		{
+		}
+
+		public string ResourceName
+		{
+			get { return resourceName; }
+		}
+
+		public int Count
+		{
+			get { return count; }
 		}
 
 		public override string Name
@@ -298,14 +335,15 @@ namespace Project1
 			       && TryLoadCount(tokens, 1, out count);
 		}
 
-		public override void Execute()
+		public override void DispatchMessage()
 		{
+			MessageBoard.Send(this);
 		}
 	}
 
 	public class TimeoutCommand : CommandBase
 	{
-		public TimeoutCommand(IOutput output) : base(output)
+		public TimeoutCommand(IMessageBoard messageBoard) : base(messageBoard)
 		{
 		}
 
@@ -329,14 +367,15 @@ namespace Project1
 			return true;
 		}
 
-		public override void Execute()
+		public override void DispatchMessage()
 		{
+			MessageBoard.Send(this);
 		}
 	}
 
 	public class RequestIOCommand : CommandBase
 	{
-		public RequestIOCommand(IOutput output) : base(output)
+		public RequestIOCommand(IMessageBoard messageBoard) : base(messageBoard)
 		{
 		}
 
@@ -360,15 +399,15 @@ namespace Project1
 			return true;
 		}
 
-		public override void Execute()
+		public override void DispatchMessage()
 		{
-
+			MessageBoard.Send(this);
 		}
 	}
 
 	public class CompleteIOCommand : CommandBase
 	{
-		public CompleteIOCommand(IOutput output) : base(output)
+		public CompleteIOCommand(IMessageBoard messageBoard) : base(messageBoard)
 		{
 		}
 
@@ -392,9 +431,9 @@ namespace Project1
 			return true;
 		}
 
-		public override void Execute()
+		public override void DispatchMessage()
 		{
-
+			MessageBoard.Send(this);
 		}
 	}
 
@@ -402,8 +441,13 @@ namespace Project1
 	{
 		private string processName;
 
-		public ShowProcessCommand(IOutput output) : base(output)
+		public ShowProcessCommand(IMessageBoard messageBoard) : base(messageBoard)
 		{
+		}
+
+		public string ProcessName
+		{
+			get { return processName; }
 		}
 
 		public override string Name
@@ -426,9 +470,9 @@ namespace Project1
 			return TryLoadProcessName(tokens, 0, out processName);
 		}
 
-		public override void Execute()
+		public override void DispatchMessage()
 		{
-			throw new System.NotImplementedException();
+			MessageBoard.Send(this);
 		}
 	}
 
@@ -436,8 +480,13 @@ namespace Project1
 	{
 		private string resourceName;
 
-		public ShowResourceCommand(IOutput output) : base(output)
+		public ShowResourceCommand(IMessageBoard messageBoard) : base(messageBoard)
 		{
+		}
+
+		public string ResourceName
+		{
+			get { return resourceName; }
 		}
 
 		public override string Name
@@ -460,15 +509,15 @@ namespace Project1
 			return TryLoadResourceName(tokens, 0, out resourceName);
 		}
 
-		public override void Execute()
+		public override void DispatchMessage()
 		{
-
+			MessageBoard.Send(this);
 		}
 	}
 
 	public class ListProcessesCommand : CommandBase
 	{
-		public ListProcessesCommand(IOutput output) : base(output)
+		public ListProcessesCommand(IMessageBoard messageBoard) : base(messageBoard)
 		{
 		}
 
@@ -492,15 +541,15 @@ namespace Project1
 			return true;
 		}
 
-		public override void Execute()
+		public override void DispatchMessage()
 		{
-
+			MessageBoard.Send(this);
 		}
 	}
 
 	public class ListResourcesCommand : CommandBase
 	{
-		public ListResourcesCommand(IOutput output) : base(output)
+		public ListResourcesCommand(IMessageBoard messageBoard) : base(messageBoard)
 		{
 		}
 
@@ -524,19 +573,17 @@ namespace Project1
 			return true;
 		}
 
-		public override void Execute()
+		public override void DispatchMessage()
 		{
-
+			MessageBoard.Send(this);
 		}
 	}
 
 	public class HelpCommand : CommandBase
 	{
-		private readonly ICommandRegistry commandRegistry;
-
-		public HelpCommand(IOutput output, ICommandRegistry commandRegistry) : base(output)
+		public HelpCommand(IMessageBoard messageBoard) : base(messageBoard)
 		{
-			this.commandRegistry = commandRegistry;
+
 		}
 
 		public override string Name
@@ -559,9 +606,9 @@ namespace Project1
 			return true;
 		}
 
-		public override void Execute()
+		public override void DispatchMessage()
 		{
-
+			MessageBoard.Send(this);
 		}
 	}
 }
