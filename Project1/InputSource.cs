@@ -9,7 +9,7 @@ namespace Project1
 		string Name { get; }
 		void Init();
 		bool MoveNext();
-		string CurrentCommand { get; }
+		string CurrentInput { get; }
 	}
 
 	public class ConsoleInputSource : IInputSource
@@ -31,7 +31,7 @@ namespace Project1
 		{
 			try
 			{
-				return (CurrentCommand = Console.ReadLine()) != null;
+				return (CurrentInput = Console.ReadLine()) != null;
 			}
 			catch (IOException)
 			{
@@ -39,7 +39,7 @@ namespace Project1
 			}
 		}
 
-		public string CurrentCommand { get; private set; }
+		public string CurrentInput { get; private set; }
 	}
 
 	public class ScriptInputSource : IInputSource
@@ -70,7 +70,7 @@ namespace Project1
 		{
 			try
 			{
-				return reader != null && (CurrentCommand = reader.ReadLine()) != null;
+				return reader != null && (CurrentInput = reader.ReadLine()) != null;
 			}
 			catch (IOException)
 			{
@@ -78,7 +78,7 @@ namespace Project1
 			}
 		}
 
-		public string CurrentCommand { get; private set; }
+		public string CurrentInput { get; private set; }
 
 		public string Name
 		{

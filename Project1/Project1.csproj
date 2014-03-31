@@ -44,13 +44,14 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="MessagesBoard.cs" />
+    <Compile Include="MessageBoard.cs" />
     <Compile Include="NinjectActivator.cs" />
     <Compile Include="CommandRegistry.cs" />
     <Compile Include="Commands.cs" />
     <Compile Include="InputSource.cs" />
     <Compile Include="InputSourceFactory.cs" />
     <Compile Include="ConsoleOutput.cs" />
+    <Compile Include="Process.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

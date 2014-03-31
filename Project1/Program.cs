@@ -25,6 +25,9 @@ namespace Project1
 			kernel.Bind<ICommandRegistry>().To<CommandRegistry>().InSingletonScope();
 			kernel.Bind<IOutput>().To<ConsoleOutput>().InSingletonScope();
 			kernel.Bind<IMessageBoard>().To<MessageBoard>().InSingletonScope();
+			kernel.Bind<IProcessManager>().To<ProcessManager>().InSingletonScope();
+			kernel.Bind<IResourceManager>().To<ResourceManager>().InSingletonScope();
+			kernel.Bind<IIOManager>().To<IOManager>().InSingletonScope();
 
 			return kernel;
 		}
@@ -50,7 +53,7 @@ namespace Project1
 
 				while (inputSource.MoveNext())
 				{
-					
+					Console.WriteLine(inputSource.CurrentInput);
 				}
 			}
 		}
