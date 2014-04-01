@@ -48,12 +48,18 @@ namespace Project1
 
 		private void OnHelp(HelpCommand command)
 		{
-			output.WriteLine(Purpose.Info, "{0,10} - {1}", "Name", "Description");
-			output.WriteLine(Purpose.Info, new string('-', 80));
-			foreach (var c in commands.Values)
+			output.WriteLine(Purpose.Info, "HELP: A list of all defined commands and their usages are displayed below.");
+			//using (output.Indent())
 			{
-				output.WriteLine(Purpose.Info, "{0,10} - {1}", c.Name, c.Description);
-				output.WriteLine(Purpose.Info, c.Usage);
+				foreach (var c in commands.Values)
+				{
+					output.WriteLine(Purpose.Info, "- {0}", c.Name);
+					using (output.Indent())
+					{
+						output.WriteLine(Purpose.Info, c.Description);
+						output.WriteLine(Purpose.Info, "Usage: \"{0}\"", c.Usage);
+					}
+				}
 			}
 		}
 	}

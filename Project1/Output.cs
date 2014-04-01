@@ -16,8 +16,6 @@ namespace Project1
 		void Write(Purpose purpose, string format, params object[] args);
 		void WriteLine(Purpose purpose, string text);
 		void WriteLine(Purpose purpose, string format, params object[] args);
-		void SetEnabled(Purpose purpose, bool isEnabled);
-		bool IsEnabled(Purpose purpose);
 		IDisposable Indent();
 	}
 
@@ -46,17 +44,11 @@ namespace Project1
 			}
 		}
 
-		private readonly bool[] enabled;
 		private int indentationLevel;
 		private bool startOfLine;
-		
+
 		protected OutputBase()
 		{
-			enabled = new bool[4];
-			enabled[(int) Purpose.Error] = true;
-			enabled[(int) Purpose.Output] = true;
-			enabled[(int) Purpose.Success] = true;
-			enabled[(int) Purpose.Info] = true;
 			startOfLine = true;
 		}
 
@@ -72,44 +64,30 @@ namespace Project1
 
 		public void Write(Purpose purpose, string text)
 		{
-			if (!enabled[(int) purpose])
-				return;
-			DoWrite(purpose, startOfLine && indentationLevel > 0 ? string.Join("", text, new string('\t', indentationLevel)) : text);
-			startOfLine = false;	
+			DoWrite(purpose,
+				startOfLine && indentationLevel > 0 ? string.Join("", new string('\t', indentationLevel), text) : text);
+			startOfLine = false;
 		}
 
 		public void Write(Purpose purpose, string format, params object[] args)
 		{
-			if (!enabled[(int) purpose])
-				return;
-			DoWrite(purpose, startOfLine && indentationLevel > 0 ? string.Join("", format, new string('\t', indentationLevel)) : format, args);
+			DoWrite(purpose,
+				startOfLine && indentationLevel > 0 ? string.Join("", new string('\t', indentationLevel), format) : format, args);
 			startOfLine = false;
 		}
 
 		public void WriteLine(Purpose purpose, string text)
 		{
-			if (!enabled[(int) purpose])
-				return;
-			DoWriteLine(purpose, startOfLine && indentationLevel > 0 ? string.Join("", text, new string('\t', indentationLevel)) : text);
+			DoWriteLine(purpose,
+				startOfLine && indentationLevel > 0 ? string.Join("", new string('\t', indentationLevel), text) : text);
 			startOfLine = true;
 		}
 
 		public void WriteLine(Purpose purpose, string format, params object[] args)
 		{
-			if (!enabled[(int) purpose])
-				return;
-			DoWriteLine(purpose, startOfLine && indentationLevel > 0 ? string.Join("", format, new string('\t', indentationLevel)) : format, args);
+			DoWriteLine(purpose,
+				startOfLine && indentationLevel > 0 ? string.Join("", new string('\t', indentationLevel), format) : format, args);
 			startOfLine = true;
-		}
-
-		public void SetEnabled(Purpose purpose, bool isEnabled)
-		{
-			enabled[(int) purpose] = isEnabled;
-		}
-
-		public bool IsEnabled(Purpose purpose)
-		{
-			return enabled[(int) purpose];
 		}
 	}
 
