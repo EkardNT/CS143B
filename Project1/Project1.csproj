@@ -57,6 +57,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SimulationItems.cs" />
+    <Compile Include="Simulator.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
