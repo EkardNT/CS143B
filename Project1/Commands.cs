@@ -25,27 +25,14 @@ namespace Project1
 		/// successfully retrieved, false otherwise.
 		/// </summary>
 		bool LoadParams(string[] tokens);
-
-		/// <summary>
-		/// Sends a message into the system message board announcing the command.
-		/// </summary>
-		void DispatchMessage();
 	}
 
 	public abstract class CommandBase : ICommand
 	{
-		protected CommandBase(IMessageBoard messageBoard)
-		{
-			MessageBoard = messageBoard;
-		}
-
-		protected IMessageBoard MessageBoard { get; private set; }
-
 		public abstract string Name { get; }
 		public abstract string Usage { get; }
 		public abstract string Description { get; }
 		public abstract bool LoadParams(string[] tokens);
-		public abstract void DispatchMessage();
 
 		protected static bool TryLoadProcessName(string[] tokens, int index, out string processName)
 		{
@@ -90,10 +77,6 @@ namespace Project1
 
 	public class InitCommand : CommandBase
 	{
-		public InitCommand(IMessageBoard messageBoard) : base(messageBoard)
-		{
-		}
-
 		public override string Name
 		{
 			get { return "init"; }
@@ -113,19 +96,10 @@ namespace Project1
 		{
 			return true;
 		}
-
-		public override void DispatchMessage()
-		{
-			MessageBoard.Send(this);
-		}
 	}
 
 	public class QuitCommand : CommandBase
 	{
-		public QuitCommand(IMessageBoard messageBoard) : base(messageBoard)
-		{
-		}
-
 		public override string Name
 		{
 			get { return "quit"; }
@@ -145,21 +119,12 @@ namespace Project1
 		{
 			return true;
 		}
-
-		public override void DispatchMessage()
-		{
-			MessageBoard.Send(this);
-		}
 	}
 
 	public class CreateCommand : CommandBase
 	{
 		private string processName;
 		private int priority;
-
-		public CreateCommand(IMessageBoard messageBoard) : base(messageBoard)
-		{
-		}
 
 		public string ProcessName
 		{
@@ -195,20 +160,11 @@ namespace Project1
 			return TryLoadProcessName(tokens, 0, out processName)
 			       && TryLoadPriority(tokens, 1, out priority);
 		}
-
-		public override void DispatchMessage()
-		{
-			MessageBoard.Send(this);
-		}
 	}
 
 	public class DestroyCommand : CommandBase
 	{
 		private string processName;
-
-		public DestroyCommand(IMessageBoard messageBoard) : base(messageBoard)
-		{
-		}
 
 		public string ProcessName
 		{
@@ -234,21 +190,12 @@ namespace Project1
 		{
 			return TryLoadProcessName(tokens, 0, out processName);
 		}
-
-		public override void DispatchMessage()
-		{
-			MessageBoard.Send(this);
-		}
 	}
 
 	public class RequestCommand : CommandBase
 	{
 		private string resourceName;
 		private int count;
-
-		public RequestCommand(IMessageBoard messageBoard) : base(messageBoard)
-		{
-		}
 
 		public string ResourceName
 		{
@@ -284,21 +231,12 @@ namespace Project1
 			return TryLoadResourceName(tokens, 0, out resourceName)
 			       && TryLoadCount(tokens, 1, out count);
 		}
-
-		public override void DispatchMessage()
-		{
-			MessageBoard.Send(this);
-		}
 	}
 
 	public class ReleaseCommand : CommandBase
 	{
 		private string resourceName;
 		private int count;
-
-		public ReleaseCommand(IMessageBoard messageBoard) : base(messageBoard)
-		{
-		}
 
 		public string ResourceName
 		{
@@ -334,19 +272,10 @@ namespace Project1
 			return TryLoadResourceName(tokens, 0, out resourceName)
 			       && TryLoadCount(tokens, 1, out count);
 		}
-
-		public override void DispatchMessage()
-		{
-			MessageBoard.Send(this);
-		}
 	}
 
 	public class TimeoutCommand : CommandBase
 	{
-		public TimeoutCommand(IMessageBoard messageBoard) : base(messageBoard)
-		{
-		}
-
 		public override string Name
 		{
 			get { return "to"; }
@@ -366,19 +295,10 @@ namespace Project1
 		{
 			return true;
 		}
-
-		public override void DispatchMessage()
-		{
-			MessageBoard.Send(this);
-		}
 	}
 
 	public class RequestIOCommand : CommandBase
 	{
-		public RequestIOCommand(IMessageBoard messageBoard) : base(messageBoard)
-		{
-		}
-
 		public override string Name
 		{
 			get { return "rio"; }
@@ -398,19 +318,10 @@ namespace Project1
 		{
 			return true;
 		}
-
-		public override void DispatchMessage()
-		{
-			MessageBoard.Send(this);
-		}
 	}
 
 	public class CompleteIOCommand : CommandBase
 	{
-		public CompleteIOCommand(IMessageBoard messageBoard) : base(messageBoard)
-		{
-		}
-
 		public override string Name
 		{
 			get { return "ioc"; }
@@ -430,20 +341,11 @@ namespace Project1
 		{
 			return true;
 		}
-
-		public override void DispatchMessage()
-		{
-			MessageBoard.Send(this);
-		}
 	}
 
 	public class ShowProcessCommand : CommandBase
 	{
 		private string processName;
-
-		public ShowProcessCommand(IMessageBoard messageBoard) : base(messageBoard)
-		{
-		}
 
 		public string ProcessName
 		{
@@ -469,20 +371,11 @@ namespace Project1
 		{
 			return TryLoadProcessName(tokens, 0, out processName);
 		}
-
-		public override void DispatchMessage()
-		{
-			MessageBoard.Send(this);
-		}
 	}
 
 	public class ShowResourceCommand : CommandBase
 	{
 		private string resourceName;
-
-		public ShowResourceCommand(IMessageBoard messageBoard) : base(messageBoard)
-		{
-		}
 
 		public string ResourceName
 		{
@@ -508,19 +401,10 @@ namespace Project1
 		{
 			return TryLoadResourceName(tokens, 0, out resourceName);
 		}
-
-		public override void DispatchMessage()
-		{
-			MessageBoard.Send(this);
-		}
 	}
 
 	public class ListProcessesCommand : CommandBase
 	{
-		public ListProcessesCommand(IMessageBoard messageBoard) : base(messageBoard)
-		{
-		}
-
 		public override string Name
 		{
 			get { return "list-proc"; }
@@ -540,19 +424,10 @@ namespace Project1
 		{
 			return true;
 		}
-
-		public override void DispatchMessage()
-		{
-			MessageBoard.Send(this);
-		}
 	}
 
 	public class ListResourcesCommand : CommandBase
 	{
-		public ListResourcesCommand(IMessageBoard messageBoard) : base(messageBoard)
-		{
-		}
-
 		public override string Name
 		{
 			get { return "list-res"; }
@@ -572,20 +447,10 @@ namespace Project1
 		{
 			return true;
 		}
-
-		public override void DispatchMessage()
-		{
-			MessageBoard.Send(this);
-		}
 	}
 
 	public class HelpCommand : CommandBase
 	{
-		public HelpCommand(IMessageBoard messageBoard) : base(messageBoard)
-		{
-
-		}
-
 		public override string Name
 		{
 			get { return "help"; }
@@ -604,11 +469,6 @@ namespace Project1
 		public override bool LoadParams(string[] tokens)
 		{
 			return true;
-		}
-
-		public override void DispatchMessage()
-		{
-			MessageBoard.Send(this);
 		}
 	}
 }

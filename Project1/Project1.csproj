@@ -44,16 +44,20 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Dispatcher.cs" />
     <Compile Include="MessageBoard.cs" />
     <Compile Include="NinjectActivator.cs" />
     <Compile Include="CommandRegistry.cs" />
     <Compile Include="Commands.cs" />
     <Compile Include="InputSource.cs" />
     <Compile Include="InputSourceFactory.cs" />
-    <Compile Include="ConsoleOutput.cs" />
-    <Compile Include="Process.cs" />
+    <Compile Include="Output.cs" />
+    <Compile Include="Node.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SimulationItems.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

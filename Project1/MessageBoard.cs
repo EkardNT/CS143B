@@ -5,28 +5,29 @@ namespace Project1
 {
 	public interface IMessageBoard
 	{
-		void Send<T>(T message);
+		void Send(object message);
 		void Receive<T>(Action<T> handler);
 	}
 
 	public class MessageBoard : IMessageBoard
 	{
-		private readonly Dictionary<Type, List<object>> typeHandlers = new Dictionary<Type, List<object>>(); 
+		private readonly Dictionary<Type, List<Action<object>>> typeHandlers = new Dictionary<Type, List<Action<object>>>();
 
-		public void Send<T>(T message)
+		public void Send(object message)
 		{
-			List<object> handlers;
-			if(typeHandlers.TryGetValue(typeof(T), out handlers))
+			List<Action<object>> handlers;
+			var type = message.GetType();
+			if (typeHandlers.TryGetValue(type, out handlers))
 				foreach (var handler in handlers)
-					((Action<T>) handler)(message);
+					handler(message);
 		}
 
 		public void Receive<T>(Action<T> handler)
 		{
-			List<object> handlers;
+			List<Action<object>> handlers;
 			if (!typeHandlers.TryGetValue(typeof (T), out handlers))
-				typeHandlers.Add(typeof (T), handlers = new List<object>());
-			handlers.Add(handler);
+				typeHandlers.Add(typeof (T), handlers = new List<Action<object>>());
+			handlers.Add(message => handler((T) message));
 		}
 	}
 }

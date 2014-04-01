@@ -12,9 +12,11 @@ namespace Project1
 	public class CommandRegistry : ICommandRegistry
 	{
 		private readonly Dictionary<string, ICommand> commands;
+		private readonly IOutput output;
 
-		public CommandRegistry(IActivator activator)
+		public CommandRegistry(IActivator activator, IMessageBoard messageBoard, IOutput output)
 		{
+			this.output = output;
 			commands = new Dictionary<string, ICommand>();
 			foreach (var command in typeof (CommandRegistry).Assembly.GetTypes()
 				.Where(type => typeof (ICommand).IsAssignableFrom(type))
@@ -24,6 +26,8 @@ namespace Project1
 			{
 				commands.Add(command.Name, command);
 			}
+
+			messageBoard.Receive<HelpCommand>(OnHelp);
 		}
 
 		public bool TryGetCommand(string commandName, out ICommand command)
@@ -39,6 +43,17 @@ namespace Project1
 		IEnumerator IEnumerable.GetEnumerator()
 		{
 			return GetEnumerator();
+		}
+
+		private void OnHelp(HelpCommand command)
+		{
+			output.WriteLine("{0,10} - {1}", "Name", "Description");
+			output.WriteLine(new string('-', 80));
+			foreach (var c in commands.Values)
+			{
+				output.WriteLine("{0,10} - {1}", c.Name, c.Description);
+				output.WriteLine(c.Usage);
+			}
 		}
 	}
 }
