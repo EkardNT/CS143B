@@ -46,7 +46,6 @@
   <ItemGroup>
     <Compile Include="Dispatcher.cs" />
     <Compile Include="MessageBoard.cs" />
-    <Compile Include="NinjectActivator.cs" />
     <Compile Include="CommandRegistry.cs" />
     <Compile Include="Commands.cs" />
     <Compile Include="InputSource.cs" />

@@ -69,5 +69,19 @@ namespace Project1
 			}
 			while ((current = current.Next) != head);
 		}
+
+		public static int Count(Node<T> head)
+		{
+			if (head == null)
+				return 0;
+			int count = 0;
+			var current = head;
+			do
+			{
+				count++;
+			}
+			while ((current = current.Next) != head);
+			return count;
+		}
 	}
 }

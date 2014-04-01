@@ -24,7 +24,6 @@ namespace Project1
 			kernel.Bind<IInputSourceFactory>().ToConstant(args.Length > 0
 				? (IInputSourceFactory) new ScriptInputSourceFactory(args)
 				: (IInputSourceFactory) new ConsoleInputSourceFactory());
-			kernel.Bind<IActivator>().ToConstant(new NinjectActivator(kernel)).InSingletonScope();
 			kernel.Bind<ICommandRegistry>().To<CommandRegistry>().InSingletonScope();
 			kernel.Bind<IOutput>().To<ConsoleOutput>().InSingletonScope();
 			kernel.Bind<IMessageBoard>().To<MessageBoard>().InSingletonScope();
@@ -84,19 +83,20 @@ namespace Project1
 		{
 			foreach (var inputSource in inputSourceFactory.Sources)
 			{
-				output.Write("Attempting to process input from the {0}... ", inputSource.Name);
+				output.Write(Purpose.Output, "Attempting to process input from the {0}... ", inputSource.Name);
 
 				try
 				{
 					inputSource.Init();
-					output.WriteLine("successfully initialized.");
+					output.WriteLine(Purpose.Success, "successfully initialized.");
 				}
 				catch
 				{
-					output.WriteLine("failed, skipping this input source.");
+					output.WriteLine(Purpose.Error, "failed, skipping this input source.");
+					continue;
 				}
 
-				output.WriteLine("{0} is running.", GetReadyProcess().Name);
+				output.WriteLine(Purpose.Output, "{0} is running.", GetReadyProcess().Name);
 				while (!quitInputSource && inputSource.MoveNext())
 				{
 					dispatcher.Dispatch(inputSource.CurrentInput);
@@ -105,13 +105,14 @@ namespace Project1
 					if (running != null)
 					{
 						running.Status = ProcessStatus.Running;
-						output.WriteLine("{0} is running.", running.Name);
+						output.WriteLine(Purpose.Output, "{0} is running.", running.Name);
 					}
 					else
-						output.WriteLine("No processes in system.");
+						output.WriteLine(Purpose.Output, "No processes in system.");
 				}
 
 				output.WriteLine(
+					Purpose.Output, 
 					quitInputSource
 						? "Quit processing input from the {0}."
 						: "Finished processing input from the {0}.",
@@ -160,7 +161,7 @@ namespace Project1
 			var process = GetReadyProcess();
 			if (process == null)
 			{
-				output.WriteLine("No ready process in the system.");
+				output.WriteLine(Purpose.Error, "No ready process in the system.");
 				return;
 			}
 
@@ -168,7 +169,7 @@ namespace Project1
 			// Check resource exists.
 			if (!resources.TryGetValue(resourceName, out resource))
 			{
-				output.WriteLine("No resource with name \"{0}\" exists in the system.", resourceName);
+				output.WriteLine(Purpose.Error, "No resource with name \"{0}\" exists in the system.", resourceName);
 				return;
 			}
 
@@ -176,6 +177,7 @@ namespace Project1
 			if (count > resource.Total)
 			{
 				output.WriteLine(
+					Purpose.Error, 
 					"Only {0} units of resource \"{1}\" exist.",
 					resource.Total,
 					resource.Name);
@@ -209,7 +211,7 @@ namespace Project1
 			var process = GetReadyProcess();
 			if (process == null)
 			{
-				output.WriteLine("No ready process in the system.");
+				output.WriteLine(Purpose.Error, "No ready process in the system.");
 				return;
 			}
 
@@ -217,7 +219,7 @@ namespace Project1
 			// Check resource exists.
 			if (!resources.TryGetValue(resourceName, out resource))
 			{
-				output.WriteLine("No resource with name \"{0}\" exists in the system.", resourceName);
+				output.WriteLine(Purpose.Error, "No resource with name \"{0}\" exists in the system.", resourceName);
 				return;
 			}
 
@@ -226,6 +228,7 @@ namespace Project1
 			if (process.HeldResources[resource.Name] < count)
 			{
 				output.WriteLine(
+					Purpose.Error, 
 					"Process \"{0}\" is not holding {1} units of resource \"{2}\".",
 					process.Name,
 					count,
@@ -290,7 +293,7 @@ namespace Project1
 			Process proc;
 			if (!processes.TryGetValue(command.ProcessName, out proc))
 			{
-				output.WriteLine("No process with name \"{0}\" exists in the system.", command.ProcessName);
+				output.WriteLine(Purpose.Error, "No process with name \"{0}\" exists in the system.", command.ProcessName);
 				return;
 			}
 			DestroyProcessTree(proc);
@@ -330,8 +333,6 @@ namespace Project1
 
 			// Remove from master process list.
 			processes.Remove(process.Name);
-
-			output.WriteLine("Process \"{0}\" destroyed.", process.Name);
 		}
 
 		private void OnRequest(RequestCommand command)
@@ -349,7 +350,7 @@ namespace Project1
 			var processBeingPreempted = GetReadyProcess();
 			if (processBeingPreempted == null)
 			{
-				output.WriteLine("No ready process in the system.");
+				output.WriteLine(Purpose.Error, "No ready process in the system.");
 				return;
 			}
 
@@ -373,11 +374,11 @@ namespace Project1
 			Process process;
 			if (!processes.TryGetValue(command.ProcessName, out process))
 			{
-				output.WriteLine("No process with name \"{0}\" exists in the system.", command.ProcessName);
+				output.WriteLine(Purpose.Error, "No process with name \"{0}\" exists in the system.", command.ProcessName);
 				return;
 			}
 
-			output.WriteLine("PROCESS: {0}", process.Name);
+			output.WriteLine(Purpose.Info, "PROCESS: {0}", process.Name);
 		}
 
 		private void OnShowResource(ShowResourceCommand command)
@@ -385,21 +386,48 @@ namespace Project1
 			Resource resource;
 			if (!resources.TryGetValue(command.ResourceName, out resource))
 			{
-				output.WriteLine("No resource with name \"{0}\" exists in the system.", command.ResourceName);
+				output.WriteLine(Purpose.Error, "No resource with name \"{0}\" exists in the system.", command.ResourceName);
 				return;
 			}
 
-			output.WriteLine("RESOURCE: {0}", resource.Name);
+			output.WriteLine(Purpose.Info, "RESOURCE: {0}", resource.Name);
 		}
 
 		private void OnListProcesses(ListProcessesCommand command)
 		{
-			output.WriteLine("PROCESSES: {0} total", processes.Count);
+			const string Format = "{0,5}{1,5}{2,8}{3,8}{4,10}";
+			output.WriteLine(Purpose.Info, "PROCESSES: {0} total", processes.Count);
+			using (output.Indent())
+			{
+				output.WriteLine(Purpose.Info, Format, "PID", "Pri", "Status", "Parent", "Children");
+				foreach (var process in processes.Values)
+					output.WriteLine(
+						Purpose.Info,
+						Format,
+						process.Name,
+						process.Priority,
+						process.Status,
+						process.Parent == null ? "-" : process.Parent.Name,
+						Node<Process>.Count(process.ChildList));
+			}
 		}
 
 		private void OnListResources(ListResourcesCommand command)
 		{
-			output.WriteLine("RESOURCES: {0} total", resources.Count);
+			const string Format = "{0,6}{1,7}{2,6}{3,9}";
+			output.WriteLine(Purpose.Info, "RESOURCES: {0} total", resources.Count);
+			using (output.Indent())
+			{
+				output.WriteLine(Purpose.Info, Format, "Name", "Total", "Free", "Waiting");
+				foreach (var resource in resources.Values)
+					output.WriteLine(
+						Purpose.Info,
+						Format,
+						resource.Name,
+						resource.Total,
+						resource.Available,
+						Node<AccessRequest>.Count(resource.WaitingList));
+			}
 		}
 	}
 }

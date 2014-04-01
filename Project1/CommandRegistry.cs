@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -14,14 +15,14 @@ namespace Project1
 		private readonly Dictionary<string, ICommand> commands;
 		private readonly IOutput output;
 
-		public CommandRegistry(IActivator activator, IMessageBoard messageBoard, IOutput output)
+		public CommandRegistry(IMessageBoard messageBoard, IOutput output)
 		{
 			this.output = output;
 			commands = new Dictionary<string, ICommand>();
 			foreach (var command in typeof (CommandRegistry).Assembly.GetTypes()
 				.Where(type => typeof (ICommand).IsAssignableFrom(type))
 				.Where(type => !type.IsAbstract && !type.IsInterface)
-				.Select(activator.Create)
+				.Select(Activator.CreateInstance)
 				.Cast<ICommand>())
 			{
 				commands.Add(command.Name, command);
@@ -47,12 +48,12 @@ namespace Project1
 
 		private void OnHelp(HelpCommand command)
 		{
-			output.WriteLine("{0,10} - {1}", "Name", "Description");
-			output.WriteLine(new string('-', 80));
+			output.WriteLine(Purpose.Info, "{0,10} - {1}", "Name", "Description");
+			output.WriteLine(Purpose.Info, new string('-', 80));
 			foreach (var c in commands.Values)
 			{
-				output.WriteLine("{0,10} - {1}", c.Name, c.Description);
-				output.WriteLine(c.Usage);
+				output.WriteLine(Purpose.Info, "{0,10} - {1}", c.Name, c.Description);
+				output.WriteLine(Purpose.Info, c.Usage);
 			}
 		}
 	}

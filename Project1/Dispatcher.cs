@@ -31,7 +31,7 @@ namespace Project1
 			ICommand command;
 			if (!commandRegistry.TryGetCommand(tokens[0], out command))
 			{
-				output.WriteLine("Unrecognized command \"{0}\".", tokens[0]);
+				output.WriteLine(Purpose.Error, "Unrecognized command \"{0}\".", tokens[0]);
 				return;
 			}
 			// Feed args to command.
@@ -40,6 +40,7 @@ namespace Project1
 			if (!command.LoadParams(args))
 			{
 				output.WriteLine(
+					Purpose.Error, 
 					"Invalid args \"{0}\" for command \"{2}\". Expected usage is \"{2}\".",
 					string.Join(" ", args),
 					command.Name,
