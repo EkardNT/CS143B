@@ -1,4 +1,6 @@
-﻿using System.Globalization;
+﻿using System;
+using System.Collections.Generic;
+using System.Globalization;
 
 namespace Project1
 {
@@ -21,10 +23,54 @@ namespace Project1
 
 		/// <summary>
 		/// Attempts to retrieve any required parameter data from the provided
-		/// user input tokens. Returns true if the required parameters were
-		/// successfully retrieved, false otherwise.
+		/// user input tokens, reporting any detected errors.
 		/// </summary>
-		bool LoadParams(string[] tokens);
+		void LoadParams(LoadParamsContext context);
+	}
+
+	public class LoadParamsContext
+	{
+		private readonly string[] tokens;
+		private readonly int offset, count;
+		private readonly List<string> errors;
+
+		public LoadParamsContext(string[] tokens, int offset, int count)
+		{
+			this.tokens = tokens;
+			this.offset = offset;
+			this.count = count;
+			errors = new List<string>(1);
+		}
+
+		public bool Failed
+		{
+			get { return errors.Count > 0; }
+		}
+
+		public int TokenCount
+		{
+			get { return count; }
+		}
+
+		public IEnumerable<string> Errors
+		{
+			get { return errors; }
+		}
+
+		public string this[int tokenIndex]
+		{
+			get
+			{
+				if (tokenIndex < 0 || tokenIndex >= count)
+					throw new IndexOutOfRangeException();
+				return tokens[tokenIndex - offset];
+			}
+		}
+
+		public void ReportError(string error)
+		{
+			errors.Add(error);
+		}
 	}
 
 	public abstract class CommandBase : ICommand
@@ -32,46 +78,52 @@ namespace Project1
 		public abstract string Name { get; }
 		public abstract string Usage { get; }
 		public abstract string Description { get; }
-		public abstract bool LoadParams(string[] tokens);
+		public abstract void LoadParams(LoadParamsContext context);
 
-		protected static bool TryLoadProcessName(string[] tokens, int index, out string processName)
+		protected static void TryLoadProcessName(LoadParamsContext context, int index, out string processName)
 		{
 			processName = null;
-			if (tokens == null || tokens.Length < index)
-				return false;
-			if (new StringInfo(tokens[index]).LengthInTextElements > 1)
-				return false;
-			return !string.IsNullOrWhiteSpace(processName = tokens[index]);
+			if (context.TokenCount <= index)
+				context.ReportError("No argument provided for process name.");
+			else if (string.IsNullOrWhiteSpace(context[index]))
+				context.ReportError("Process name cannot be empty.");
+			else if (new StringInfo(context[index]).LengthInTextElements > 1)
+				context.ReportError("Process name can be at most 1 character.");
+			else
+				processName = context[index];
 		}
 
-		protected static bool TryLoadCount(string[] tokens, int index, out int count)
+		protected static void TryLoadCount(LoadParamsContext context, int index, out int count)
 		{
 			count = 0;
-			if (tokens == null || tokens.Length < index)
-				return false;
-			if (!int.TryParse(tokens[index], NumberStyles.None, CultureInfo.InvariantCulture, out count))
-				return false;
-			if (count < 1)
-				return false;
-			return true;
+			if (context.TokenCount <= index)
+				context.ReportError("No argument provided for count.");
+			else if (!int.TryParse(context[index], NumberStyles.None, CultureInfo.InvariantCulture, out count))
+				context.ReportError("Failed to parse count as an integer value.");
+			else if (count < 1)
+				context.ReportError("Count cannot be less than 1.");
 		}
 
-		protected static bool TryLoadResourceName(string[] tokens, int index, out string resourceName)
+		protected static void TryLoadResourceName(LoadParamsContext context, int index, out string resourceName)
 		{
 			resourceName = null;
-			if (tokens == null || tokens.Length < index)
-				return false;
-			return !string.IsNullOrWhiteSpace(resourceName = tokens[index]);
+			if (context.TokenCount <= index)
+				context.ReportError("No argument provided for resource name.");
+			else if (string.IsNullOrWhiteSpace(context[index]))
+				context.ReportError("Resource name cannot be empty.");
+			else
+				resourceName = context[index];
 		}
 
-		protected static bool TryLoadPriority(string[] tokens, int index, out int priority)
+		protected static void TryLoadPriority(LoadParamsContext context, int index, out int priority)
 		{
 			priority = 0;
-			if (tokens == null || tokens.Length < index)
-				return false;
-			if (!int.TryParse(tokens[index], NumberStyles.None, CultureInfo.InvariantCulture, out priority))
-				return false;
-			return priority == 1 || priority == 2;
+			if (context.TokenCount <= index)
+				context.ReportError("No argument provided for priority.");
+			else if (!int.TryParse(context[index], NumberStyles.None, CultureInfo.InvariantCulture, out priority))
+				context.ReportError("Failed to parse priority as an integer value.");
+			else if (priority != 1 && priority != 2)
+				context.ReportError("Invalid priority, must be 1 or 2.");
 		}
 	}
 
@@ -92,9 +144,8 @@ namespace Project1
 			get { return "Restores the system to its initial state."; }
 		}
 
-		public override bool LoadParams(string[] tokens)
+		public override void LoadParams(LoadParamsContext context)
 		{
-			return true;
 		}
 	}
 
@@ -115,9 +166,8 @@ namespace Project1
 			get { return "Terminates the execution of the system."; }
 		}
 
-		public override bool LoadParams(string[] tokens)
+		public override void LoadParams(LoadParamsContext context)
 		{
-			return true;
 		}
 	}
 
@@ -155,10 +205,10 @@ namespace Project1
 			}
 		}
 
-		public override bool LoadParams(string[] tokens)
+		public override void LoadParams(LoadParamsContext context)
 		{
-			return TryLoadProcessName(tokens, 0, out processName)
-			       && TryLoadPriority(tokens, 1, out priority);
+			TryLoadProcessName(context, 0, out processName);
+			TryLoadPriority(context, 1, out priority);
 		}
 	}
 
@@ -186,9 +236,9 @@ namespace Project1
 			get { return "Destroys the process <name> and all its descendants."; }
 		}
 
-		public override bool LoadParams(string[] tokens)
+		public override void LoadParams(LoadParamsContext context)
 		{
-			return TryLoadProcessName(tokens, 0, out processName);
+			TryLoadProcessName(context, 0, out processName);
 		}
 	}
 
@@ -226,10 +276,10 @@ namespace Project1
 			}
 		}
 
-		public override bool LoadParams(string[] tokens)
+		public override void LoadParams(LoadParamsContext context)
 		{
-			return TryLoadResourceName(tokens, 0, out resourceName)
-			       && TryLoadCount(tokens, 1, out count);
+			TryLoadResourceName(context, 0, out resourceName);
+			TryLoadCount(context, 1, out count);
 		}
 	}
 
@@ -267,10 +317,10 @@ namespace Project1
 			}
 		}
 
-		public override bool LoadParams(string[] tokens)
+		public override void LoadParams(LoadParamsContext context)
 		{
-			return TryLoadResourceName(tokens, 0, out resourceName)
-			       && TryLoadCount(tokens, 1, out count);
+			TryLoadResourceName(context, 0, out resourceName);
+			TryLoadCount(context, 1, out count);
 		}
 	}
 
@@ -291,9 +341,8 @@ namespace Project1
 			get { return "Triggers a scheduling timeout."; }
 		}
 
-		public override bool LoadParams(string[] tokens)
+		public override void LoadParams(LoadParamsContext context)
 		{
-			return true;
 		}
 	}
 
@@ -314,9 +363,8 @@ namespace Project1
 			get { return "Requests IO."; }
 		}
 
-		public override bool LoadParams(string[] tokens)
+		public override void LoadParams(LoadParamsContext context)
 		{
-			return true;
 		}
 	}
 
@@ -337,9 +385,8 @@ namespace Project1
 			get { return "Completes IO."; }
 		}
 
-		public override bool LoadParams(string[] tokens)
+		public override void LoadParams(LoadParamsContext context)
 		{
-			return true;
 		}
 	}
 
@@ -367,9 +414,9 @@ namespace Project1
 			get { return "Displays information about the process named <name>. <name> is a single character."; }
 		}
 
-		public override bool LoadParams(string[] tokens)
+		public override void LoadParams(LoadParamsContext context)
 		{
-			return TryLoadProcessName(tokens, 0, out processName);
+			TryLoadProcessName(context, 0, out processName);
 		}
 	}
 
@@ -397,9 +444,9 @@ namespace Project1
 			get { return "Displays information about the resource named <name>."; }
 		}
 
-		public override bool LoadParams(string[] tokens)
+		public override void LoadParams(LoadParamsContext context)
 		{
-			return TryLoadResourceName(tokens, 0, out resourceName);
+			TryLoadResourceName(context, 0, out resourceName);
 		}
 	}
 
@@ -420,9 +467,8 @@ namespace Project1
 			get { return "Lists all processes and their statuses."; }
 		}
 
-		public override bool LoadParams(string[] tokens)
+		public override void LoadParams(LoadParamsContext context)
 		{
-			return true;
 		}
 	}
 
@@ -443,9 +489,8 @@ namespace Project1
 			get { return "Lists all resources and their statuses."; }
 		}
 
-		public override bool LoadParams(string[] tokens)
+		public override void LoadParams(LoadParamsContext context)
 		{
-			return true;
 		}
 	}
 
@@ -466,9 +511,8 @@ namespace Project1
 			get { return "Describes available commands and their usages."; }
 		}
 
-		public override bool LoadParams(string[] tokens)
+		public override void LoadParams(LoadParamsContext context)
 		{
-			return true;
 		}
 	}
 
@@ -489,9 +533,8 @@ namespace Project1
 			get { return "Displays details simulator information for debugging."; }
 		}
 
-		public override bool LoadParams(string[] tokens)
+		public override void LoadParams(LoadParamsContext context)
 		{
-			return true;
 		}
 	}
 }

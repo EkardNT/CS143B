@@ -35,16 +35,21 @@ namespace Project1
 				return;
 			}
 			// Feed args to command.
-			var args = new string[tokens.Length - 1];
-			Array.Copy(tokens, 1, args, 0, tokens.Length - 1);
-			if (!command.LoadParams(args))
+			var context = new LoadParamsContext(tokens, 1, tokens.Length - 1);
+			command.LoadParams(context);
+			if (context.Failed)
 			{
 				output.WriteLine(
 					Purpose.Error, 
 					"Invalid args \"{0}\" for command \"{2}\". Expected usage is \"{2}\".",
-					string.Join(" ", args),
+					input,
 					command.Name,
 					command.Usage);
+				using (output.Indent())
+				{
+					foreach (var error in context.Errors)
+						output.WriteLine(Purpose.Error, "- {0}", error);
+				}
 				return;
 			}
 			// Execute.
