@@ -49,7 +49,6 @@ namespace Project1
 		private void OnHelp(HelpCommand command)
 		{
 			output.WriteLine(Purpose.Info, "HELP: A list of all defined commands and their usages are displayed below.");
-			//using (output.Indent())
 			{
 				foreach (var c in commands.Values)
 				{

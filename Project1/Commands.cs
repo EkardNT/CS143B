@@ -471,4 +471,27 @@ namespace Project1
 			return true;
 		}
 	}
+
+	public class DebugCommand : CommandBase
+	{
+		public override string Name
+		{
+			get { return "debug"; }
+		}
+
+		public override string Usage
+		{
+			get { return "debug"; }
+		}
+
+		public override string Description
+		{
+			get { return "Displays details simulator information for debugging."; }
+		}
+
+		public override bool LoadParams(string[] tokens)
+		{
+			return true;
+		}
+	}
 }

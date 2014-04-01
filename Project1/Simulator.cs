@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace Project1
 {
@@ -35,6 +36,7 @@ namespace Project1
 			messageBoard.Receive<ShowResourceCommand>(OnShowResource);
 			messageBoard.Receive<ListProcessesCommand>(OnListProcesses);
 			messageBoard.Receive<ListResourcesCommand>(OnListResources);
+			messageBoard.Receive<DebugCommand>(OnDebug);
 
 			// Create simulation state.
 			readyQueue = new Node<Process>[3];
@@ -202,6 +204,13 @@ namespace Project1
 
 		private void OnCreate(CreateCommand command)
 		{
+			// Check for duplicate name.
+			if (processes.ContainsKey(command.ProcessName))
+			{
+				output.WriteLine(Purpose.Error, "A process named \"{0}\" already exists.", command.ProcessName);
+				return;
+			}
+
 			// Create new process as child of currently running process.
 			var parent = GetReadyProcess();
 			var child = new Process(command.ProcessName, parent, command.Priority);
@@ -215,11 +224,14 @@ namespace Project1
 
 			// Add to end of ready queue for proper priority.
 			var readyQueueNode = new Node<Process>(child);
+			child.ReadyNode = readyQueueNode;
 			Node<Process>.AddToBack(ref readyQueue[child.Priority], readyQueueNode);
 
 			child.Status = readyQueue[child.Priority].Data == child
 				? ProcessStatus.Running
 				: ProcessStatus.Ready;
+			if (child.Status == ProcessStatus.Running)
+				parent.Status = ProcessStatus.Ready;
 		}
 
 		private void OnDestroy(DestroyCommand command)
@@ -361,6 +373,40 @@ namespace Project1
 						resource.Total,
 						resource.Available,
 						Node<AccessRequest>.Count(resource.WaitingList));
+			}
+		}
+
+		private void OnDebug(DebugCommand command)
+		{
+			output.WriteLine(Purpose.Info, "DEBUGGING INFO");
+
+			output.WriteLine(Purpose.Info, "- Ready Queue:");
+			using (output.Indent())
+			{
+				for (int priority = 2; priority >= 0; priority--)
+				{
+					output.Write(Purpose.Info, "[{0}] -> ", priority);
+					Node<Process>.VisitAll(readyQueue[priority], proc => output.Write(
+						Purpose.Info,
+						"({0}) -> ",
+						proc.Name));
+					output.WriteLine(Purpose.Info, "[end]");
+				}
+			}
+
+			output.WriteLine(Purpose.Info, "- Waiting Lists:");
+			using (output.Indent())
+			{
+				foreach (var resource in resources.Values)
+				{
+					output.Write(Purpose.Info, "[{0}] -> ", resource.Name);
+					Node<AccessRequest>.VisitAll(resource.WaitingList, req => output.Write(
+						Purpose.Info,
+						"({0},{1}) -> ",
+						req.Process,
+						req.Amount));
+					output.WriteLine(Purpose.Info, "[end]");
+				}
 			}
 		}
 	}
