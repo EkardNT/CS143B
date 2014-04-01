@@ -63,7 +63,7 @@ namespace Project1
 			{
 				if (tokenIndex < 0 || tokenIndex >= count)
 					throw new IndexOutOfRangeException();
-				return tokens[tokenIndex - offset];
+				return tokens[tokenIndex + offset];
 			}
 		}
 
