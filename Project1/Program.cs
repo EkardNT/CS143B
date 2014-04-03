@@ -1,4 +1,5 @@
-﻿using Ninject;
+﻿using System;
+using Ninject;
 
 namespace Project1
 {
@@ -21,10 +22,25 @@ namespace Project1
 				? (IInputSourceFactory) new ScriptInputSourceFactory(args)
 				: new ConsoleInputSourceFactory());
 			kernel.Bind<ICommandRegistry>().To<CommandRegistry>().InSingletonScope();
-			kernel.Bind<IOutput>().To<ConsoleOutput>().InSingletonScope();
 			kernel.Bind<IMessageBoard>().To<MessageBoard>().InSingletonScope();
 			kernel.Bind<IDispatcher>().To<Dispatcher>().InSingletonScope();
 			kernel.Bind<ISimulator>().To<Simulator>().InSingletonScope();
+
+			if (args.Length > 0)
+			{
+				try
+				{
+					kernel.Bind<IOutput>().ToConstant(new TextFileOutput(args[0])).InSingletonScope();
+				}
+				catch
+				{
+					Console.WriteLine("Error creating output file \"{0}\", output will be printed to console.");
+					kernel.Bind<IOutput>().To<ConsoleOutput>().InSingletonScope();
+				}
+			}
+			else
+				kernel.Bind<IOutput>().To<ConsoleOutput>().InSingletonScope();
+				
 
 			return kernel;
 		}

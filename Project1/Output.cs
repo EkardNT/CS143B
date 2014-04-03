@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 
 namespace Project1
 {
@@ -140,6 +141,41 @@ namespace Project1
 				default:
 					throw new ArgumentOutOfRangeException("purpose");
 			}
+		}
+	}
+
+	public class TextFileOutput : OutputBase, IDisposable
+	{
+		private readonly StreamWriter writer;
+
+		public TextFileOutput(string filePath)
+		{
+			writer = File.CreateText(filePath);
+		}
+
+		protected override void DoWrite(Purpose purpose, string text)
+		{
+			writer.Write(text);
+		}
+
+		protected override void DoWrite(Purpose purpose, string format, params object[] args)
+		{
+			writer.Write(format, args);
+		}
+
+		protected override void DoWriteLine(Purpose purpose, string text)
+		{
+			writer.WriteLine(text);
+		}
+
+		protected override void DoWriteLine(Purpose purpose, string format, params object[] args)
+		{
+			writer.WriteLine(format, args);
+		}
+
+		public void Dispose()
+		{
+			writer.Dispose();
 		}
 	}
 }
