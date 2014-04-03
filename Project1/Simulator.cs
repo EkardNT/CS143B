@@ -227,7 +227,7 @@ namespace Project1
 			child.ReadyNode = readyQueueNode;
 			Node<Process>.AddToBack(ref readyQueue[child.Priority], readyQueueNode);
 
-			child.Status = readyQueue[child.Priority].Data == child
+			child.Status = GetReadyProcess() == child
 				? ProcessStatus.Running
 				: ProcessStatus.Ready;
 			if (child.Status == ProcessStatus.Running)
