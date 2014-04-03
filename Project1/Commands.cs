@@ -80,14 +80,14 @@ namespace Project1
 		public abstract string Description { get; }
 		public abstract void LoadParams(LoadParamsContext context);
 
-		protected static void TryLoadProcessName(LoadParamsContext context, int index, out string processName)
+		protected static void TryLoadProcessName(LoadParamsContext context, int index, out string processName, bool singleCharNamesOnly = true)
 		{
 			processName = null;
 			if (context.TokenCount <= index)
 				context.ReportError("No argument provided for process name.");
 			else if (string.IsNullOrWhiteSpace(context[index]))
 				context.ReportError("Process name cannot be empty.");
-			else if (new StringInfo(context[index]).LengthInTextElements > 1)
+			else if (singleCharNamesOnly && new StringInfo(context[index]).LengthInTextElements > 1)
 				context.ReportError("Process name can be at most 1 character.");
 			else
 				processName = context[index];
@@ -416,7 +416,7 @@ namespace Project1
 
 		public override void LoadParams(LoadParamsContext context)
 		{
-			TryLoadProcessName(context, 0, out processName);
+			TryLoadProcessName(context, 0, out processName, false);
 		}
 	}
 

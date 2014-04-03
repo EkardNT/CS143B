@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using System.Diagnostics;
+using System.Linq;
 
 namespace Project1
 {
@@ -199,7 +199,9 @@ namespace Project1
 			foreach (var resource in resources.Values)
 				init.HeldResources[resource.Name] = 0;
 			processes.Add(init.Name, init);
-			Node<Process>.AddToBack(ref readyQueue[0], new Node<Process>(init));
+			var readyQueueNode = new Node<Process>(init);
+			init.ReadyNode = readyQueueNode;
+			Node<Process>.AddToBack(ref readyQueue[0], readyQueueNode);
 		}
 
 		private void OnCreate(CreateCommand command)
@@ -211,7 +213,8 @@ namespace Project1
 				return;
 			}
 
-			// Create new process as child of currently running process.
+			// Create new process as child of currently running process,
+			// or of no process if there's no running process in the system.
 			var parent = GetReadyProcess();
 			var child = new Process(command.ProcessName, parent, command.Priority);
 			foreach (var resource in resources.Values)
@@ -219,8 +222,11 @@ namespace Project1
 			processes.Add(child.Name, child);
 
 			// Add to end of parent's linked list of children.
-			var childListNode = new Node<Process>(child);
-			Node<Process>.AddToBack(ref parent.ChildList, childListNode);
+			if (parent != null)
+			{
+				var childListNode = new Node<Process>(child);
+				Node<Process>.AddToBack(ref parent.ChildList, childListNode);	
+			}
 
 			// Add to end of ready queue for proper priority.
 			var readyQueueNode = new Node<Process>(child);
@@ -230,7 +236,7 @@ namespace Project1
 			child.Status = GetReadyProcess() == child
 				? ProcessStatus.Running
 				: ProcessStatus.Ready;
-			if (child.Status == ProcessStatus.Running)
+			if (parent != null && child.Status == ProcessStatus.Running)
 				parent.Status = ProcessStatus.Ready;
 		}
 
@@ -325,6 +331,39 @@ namespace Project1
 			}
 
 			output.WriteLine(Purpose.Info, "PROCESS: {0}", process.Name);
+			using (output.Indent())
+			{
+				output.WriteLine(Purpose.Info, "Priority: {0}", process.Priority);
+				output.WriteLine(Purpose.Info, "Status: {0}", process.Status);
+				output.WriteLine(Purpose.Info, "Parent: {0}", process.Parent != null ? process.Parent.Name : "-");
+				output.Write(Purpose.Info, "Child List -> ");
+				Node<Process>.VisitAll(process.ChildList, proc => output.Write(Purpose.Info, "({0}) -> ", proc.Name));
+				output.WriteLine(Purpose.Info, "[end]");
+				output.WriteLine(Purpose.Info, "Held Resources:");
+				using (output.Indent())
+					foreach (var pair in process.HeldResources.Where(pair => pair.Value > 0))
+						output.WriteLine(Purpose.Info, "{0}: {1}", pair.Key, pair.Value);
+				if (process.ReadyNode != null)
+				{
+					output.Write(Purpose.Info, "Ready Position: [{0}] -> ", process.Priority);
+					Node<Process>.VisitAll(readyQueue[process.Priority],
+						proc => output.Write(
+							Purpose.Info, proc == process ? "<{{{0}}} -> " : "({0}) -> ",
+							proc.Name));
+					output.WriteLine(Purpose.Info, "[end]");
+				}
+				if (process.WaitingNode != null)
+				{
+					output.Write(Purpose.Info, "Waiting Position: [{0}] -> ", process.WaitingResourceName);
+					Node<AccessRequest>.VisitAll(
+						resources[process.WaitingResourceName].WaitingList,
+						req => output.Write(
+							Purpose.Info, req.Process == process ? "{{{0},{1}}} -> " : "({0},{1}) -> ",
+							req.Process.Name,
+							req.Amount));
+					output.WriteLine(Purpose.Info, "[end]");
+				}
+			}
 		}
 
 		private void OnShowResource(ShowResourceCommand command)
@@ -337,6 +376,16 @@ namespace Project1
 			}
 
 			output.WriteLine(Purpose.Info, "RESOURCE: {0}", resource.Name);
+			using (output.Indent())
+			{
+				output.WriteLine(Purpose.Info, "Total: {0}", resource.Total);
+				output.WriteLine(Purpose.Info, "Available: {0}", resource.Available);
+				output.Write(Purpose.Info, "Waiting list: -> ");
+				Node<AccessRequest>.VisitAll(
+					resource.WaitingList,
+					req => output.Write(Purpose.Info, "({0},{1}) -> ", req.Process.Name, req.Amount));
+				output.WriteLine(Purpose.Info, "[end]");
+			}
 		}
 
 		private void OnListProcesses(ListProcessesCommand command)
