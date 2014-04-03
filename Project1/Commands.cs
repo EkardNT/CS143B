@@ -97,7 +97,7 @@ namespace Project1
 		{
 			count = 0;
 			if (context.TokenCount <= index)
-				context.ReportError("No argument provided for count.");
+				count = 1; // Default value if not provided instead of error.
 			else if (!int.TryParse(context[index], NumberStyles.None, CultureInfo.InvariantCulture, out count))
 				context.ReportError("Failed to parse count as an integer value.");
 			else if (count < 1)
@@ -530,7 +530,7 @@ namespace Project1
 
 		public override string Description
 		{
-			get { return "Displays details simulator information for debugging."; }
+			get { return "Displays detailed simulator information for debugging."; }
 		}
 
 		public override void LoadParams(LoadParamsContext context)
