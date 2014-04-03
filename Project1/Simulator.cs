@@ -225,7 +225,7 @@ namespace Project1
 			if (parent != null)
 			{
 				var childListNode = new Node<Process>(child);
-				Node<Process>.AddToBack(ref parent.ChildList, childListNode);	
+				Node<Process>.AddToBack(ref parent.ChildList, childListNode);
 			}
 
 			// Add to end of ready queue for proper priority.
@@ -335,20 +335,25 @@ namespace Project1
 			{
 				output.WriteLine(Purpose.Info, "Priority: {0}", process.Priority);
 				output.WriteLine(Purpose.Info, "Status: {0}", process.Status);
-				output.WriteLine(Purpose.Info, "Parent: {0}", process.Parent != null ? process.Parent.Name : "-");
+				output.WriteLine(Purpose.Info, "Parent: {0}", process.Parent != null ? process.Parent.Name : "none");
 				output.Write(Purpose.Info, "Child List -> ");
 				Node<Process>.VisitAll(process.ChildList, proc => output.Write(Purpose.Info, "({0}) -> ", proc.Name));
 				output.WriteLine(Purpose.Info, "[end]");
-				output.WriteLine(Purpose.Info, "Held Resources:");
-				using (output.Indent())
-					foreach (var pair in process.HeldResources.Where(pair => pair.Value > 0))
-						output.WriteLine(Purpose.Info, "{0}: {1}", pair.Key, pair.Value);
+				if (process.HeldResources.Any(pair => pair.Value > 0))
+				{
+					output.WriteLine(Purpose.Info, "Held Resources: ");
+					using (output.Indent())
+						foreach (var pair in process.HeldResources.Where(pair => pair.Value > 0))
+							output.WriteLine(Purpose.Info, "{0}: {1}", pair.Key, pair.Value);
+				}
+				else
+					output.WriteLine(Purpose.Info, "Held Resources: none");
 				if (process.ReadyNode != null)
 				{
 					output.Write(Purpose.Info, "Ready Position: [{0}] -> ", process.Priority);
 					Node<Process>.VisitAll(readyQueue[process.Priority],
 						proc => output.Write(
-							Purpose.Info, proc == process ? "<{{{0}}} -> " : "({0}) -> ",
+							Purpose.Info, proc == process ? "{{{0}}} -> " : "({0}) -> ",
 							proc.Name));
 					output.WriteLine(Purpose.Info, "[end]");
 				}
