@@ -452,7 +452,7 @@ namespace Project1
 					Node<AccessRequest>.VisitAll(resource.WaitingList, req => output.Write(
 						Purpose.Info,
 						"({0},{1}) -> ",
-						req.Process,
+						req.Process.Name,
 						req.Amount));
 					output.WriteLine(Purpose.Info, "[end]");
 				}
