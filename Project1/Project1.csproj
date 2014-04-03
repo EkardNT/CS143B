@@ -37,11 +37,6 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Dispatcher.cs" />
@@ -49,7 +44,6 @@
     <Compile Include="CommandRegistry.cs" />
     <Compile Include="Commands.cs" />
     <Compile Include="InputSource.cs" />
-    <Compile Include="InputSourceFactory.cs" />
     <Compile Include="Output.cs" />
     <Compile Include="Node.cs">
       <SubType>Code</SubType>

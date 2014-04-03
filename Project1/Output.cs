@@ -13,6 +13,7 @@ namespace Project1
 
 	public interface IOutput
 	{
+		void Init();
 		void Write(Purpose purpose, string text);
 		void Write(Purpose purpose, string format, params object[] args);
 		void WriteLine(Purpose purpose, string text);
@@ -53,6 +54,7 @@ namespace Project1
 			startOfLine = true;
 		}
 
+		public abstract void Init();
 		protected abstract void DoWrite(Purpose purpose, string text);
 		protected abstract void DoWrite(Purpose purpose, string format, params object[] args);
 		protected abstract void DoWriteLine(Purpose purpose, string text);
@@ -94,6 +96,11 @@ namespace Project1
 
 	public class ConsoleOutput : OutputBase
 	{
+		public override void Init()
+		{
+			
+		}
+
 		protected override void DoWrite(Purpose purpose, string text)
 		{
 			SetColor(purpose);
@@ -146,9 +153,15 @@ namespace Project1
 
 	public class TextFileOutput : OutputBase, IDisposable
 	{
-		private readonly StreamWriter writer;
+		private readonly string filePath;
+		private StreamWriter writer;
 
 		public TextFileOutput(string filePath)
+		{
+			this.filePath = filePath;
+		}
+
+		public override void Init()
 		{
 			writer = File.CreateText(filePath);
 		}
@@ -175,7 +188,11 @@ namespace Project1
 
 		public void Dispose()
 		{
-			writer.Dispose();
+			if (writer != null)
+			{
+				writer.Dispose();
+				writer = null;
+			}
 		}
 	}
 }

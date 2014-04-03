@@ -18,49 +18,47 @@ namespace Project1
 		{
 			var kernel = new StandardKernel();
 
-			kernel.Bind<IInputSourceFactory>().ToConstant(args.Length > 0
-				? (IInputSourceFactory) new ScriptInputSourceFactory(args)
-				: new ConsoleInputSourceFactory());
+			ParseCommandLine(args, kernel);
+
 			kernel.Bind<ICommandRegistry>().To<CommandRegistry>().InSingletonScope();
 			kernel.Bind<IMessageBoard>().To<MessageBoard>().InSingletonScope();
 			kernel.Bind<IDispatcher>().To<Dispatcher>().InSingletonScope();
 			kernel.Bind<ISimulator>().To<Simulator>().InSingletonScope();
 
-			if (args.Length > 0)
-			{
-				try
-				{
-					kernel.Bind<IOutput>().ToConstant(new TextFileOutput(args[0])).InSingletonScope();
-				}
-				catch
-				{
-					Console.WriteLine("Error creating output file \"{0}\", output will be printed to console.");
-					kernel.Bind<IOutput>().To<ConsoleOutput>().InSingletonScope();
-				}
-			}
-			else
-				kernel.Bind<IOutput>().To<ConsoleOutput>().InSingletonScope();
-				
-
 			return kernel;
 		}
 
-		private readonly IInputSourceFactory inputSourceFactory;
+		private static void ParseCommandLine(string[] args, IKernel kernel)
+		{
+			// First argument is input file path, otherwise use console input.
+			if (args.Length > 0)
+				kernel.Bind<IInput>().ToConstant(new ScriptInput(args[0])).InSingletonScope();
+			else
+				kernel.Bind<IInput>().To<ConsoleInput>().InSingletonScope();
+
+			// Second argument is output file path, otherwise use console output.
+			if (args.Length > 1)
+				kernel.Bind<IOutput>().ToConstant(new TextFileOutput(args[1])).InSingletonScope();
+			else
+				kernel.Bind<IOutput>().To<ConsoleOutput>().InSingletonScope();
+		}
+
+		private readonly IInput input;
 		private readonly IOutput output;
 		private readonly IDispatcher dispatcher;
 		private readonly ISimulator simulator;
 
-		// Stop processing the current input source?
-		private bool quitInputSource;
+		// Early quit?
+		private bool quit;
 
 		public Program(
-			IInputSourceFactory inputSourceFactory,
+			IInput input,
 			IOutput output,
 			IMessageBoard messageBoard,
 			IDispatcher dispatcher,
 			ISimulator simulator)
 		{
-			this.inputSourceFactory = inputSourceFactory;
+			this.input = input;
 			this.output = output;
 			this.dispatcher = dispatcher;
 			this.simulator = simulator;
@@ -70,47 +68,66 @@ namespace Project1
 
 		public void Run()
 		{
-			foreach (var inputSource in inputSourceFactory.Sources)
-			{
-				output.Write(Purpose.Output, "Attempting to process input from the {0}... ", inputSource.Name);
+			if (!InitIO())
+				return;
 
-				try
+			output.WriteLine(Purpose.Output, "{0} is running.", simulator.RunningProcess.Name);
+			while (!quit && input.MoveNext())
+			{
+				// Emit blank output for blank input.
+				if (string.IsNullOrWhiteSpace(input.CurrentInput))
 				{
-					inputSource.Init();
-					output.WriteLine(Purpose.Success, "successfully initialized.");
-				}
-				catch
-				{
-					output.WriteLine(Purpose.Error, "failed, skipping this input source.");
+					output.WriteLine(Purpose.Output, "");
 					continue;
 				}
-
-				output.WriteLine(Purpose.Output, "{0} is running.", simulator.RunningProcess.Name);
-				while (!quitInputSource && inputSource.MoveNext())
-				{
-					dispatcher.Dispatch(inputSource.CurrentInput);
-					simulator.Tick();
-					var running = simulator.RunningProcess;
-					if (running != null)
-					{
-						output.WriteLine(Purpose.Output, "{0} is running.", running.Name);
-					}
-					else
-						output.WriteLine(Purpose.Output, "No processes in system.");
-				}
-
-				output.WriteLine(
-					Purpose.Output,
-					quitInputSource
-						? "Quit processing input from the {0}."
-						: "Finished processing input from the {0}.",
-					inputSource.Name);
+				// Update simulation.
+				dispatcher.Dispatch(input.CurrentInput);
+				simulator.Tick();
+				// Report running process.
+				var running = simulator.RunningProcess;
+				if (running != null)
+					output.WriteLine(Purpose.Output, "{0} is running.", running.Name);
+				else
+					output.WriteLine(Purpose.Output, "No processes in system.");
 			}
+
+			output.WriteLine(Purpose.Output, quit ? "Simulator terminated." : "Simulator finished.");
+		}
+
+		private bool InitIO()
+		{
+			var console = new ConsoleOutput();
+
+			try
+			{
+				console.Write(Purpose.Info, "Initializing output... ");
+				output.Init();
+				console.WriteLine(Purpose.Success, "succeeded.");
+			}
+			catch (Exception e)
+			{
+				console.WriteLine(Purpose.Error, "failed, exiting. [{0}]", e.Message);
+				return false;
+			}
+
+			try
+			{
+				console.Write(Purpose.Info, "Initializing input... ");
+				input.Init();
+				console.WriteLine(Purpose.Success, "succeeded.");
+			}
+			catch (Exception e)
+			{
+				console.WriteLine(Purpose.Error, "failed, exiting. [{0}]", e.Message);
+				return false;
+			}
+
+			return true;
 		}
 
 		private void OnQuit(QuitCommand command)
 		{
-			quitInputSource = true;
+			quit = true;
 		}
 	}
 }

@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Project1
 {
-	public interface IInputSource : IDisposable
+	public interface IInput : IDisposable
 	{
 		string Name { get; }
 		void Init();
@@ -12,7 +12,7 @@ namespace Project1
 		string CurrentInput { get; }
 	}
 
-	public class ConsoleInputSource : IInputSource
+	public class ConsoleInput : IInput
 	{
 		public string Name
 		{
@@ -42,12 +42,12 @@ namespace Project1
 		public string CurrentInput { get; private set; }
 	}
 
-	public class ScriptInputSource : IInputSource
+	public class ScriptInput : IInput
 	{
 		private readonly string filePath;
 		private StreamReader reader;
 
-		public ScriptInputSource(string filePath)
+		public ScriptInput(string filePath)
 		{
 			this.filePath = filePath;
 		}
