@@ -43,7 +43,7 @@
     <Compile Include="MessageBoard.cs" />
     <Compile Include="CommandRegistry.cs" />
     <Compile Include="Commands.cs" />
-    <Compile Include="InputSource.cs" />
+    <Compile Include="Input.cs" />
     <Compile Include="Output.cs" />
     <Compile Include="Node.cs">
       <SubType>Code</SubType>

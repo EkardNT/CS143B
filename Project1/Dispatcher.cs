@@ -41,9 +41,8 @@ namespace Project1
 			{
 				output.WriteLine(
 					Purpose.Error, 
-					"Invalid args \"{0}\" for command \"{2}\". Expected usage is \"{2}\".",
+					"Invalid args \"{0}\" for command \"{1}\"",
 					input,
-					command.Name,
 					command.Usage);
 				using (output.Indent())
 				{
