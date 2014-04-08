@@ -242,13 +242,44 @@ namespace Project1
 
 		private void OnDestroy(DestroyCommand command)
 		{
-			Process proc;
-			if (!processes.TryGetValue(command.ProcessName, out proc))
+			var running = GetReadyProcess();
+			if (running == null)
+			{
+				output.WriteLine(Purpose.Error, "No ready process in the system.");
+				return;
+			}
+			Process toDestroy;
+			if (!processes.TryGetValue(command.ProcessName, out toDestroy))
 			{
 				output.WriteLine(Purpose.Error, "No process with name \"{0}\" exists in the system.", command.ProcessName);
 				return;
 			}
-			DestroyProcessTree(proc);
+			if (!IsChildOf(running, toDestroy))
+			{
+				output.WriteLine(
+					Purpose.Error,
+					"Cannot destroy process \"{0}\" because it is not a descendent of the running process \"{0}\".",
+					toDestroy.Name,
+					running.Name);
+				return;
+			}
+			DestroyProcessTree(toDestroy);
+		}
+
+		private bool IsChildOf(Process parent, Process possibleChild)
+		{
+			if (parent.ChildList == null)
+				return false;
+			var current = parent.ChildList;
+			do
+			{
+				if (current.Data == possibleChild)
+					return true;
+				if (IsChildOf(current.Data, possibleChild))
+					return true;
+			}
+			while ((current = current.Next) != parent.ChildList);
+			return false;
 		}
 
 		private void DestroyProcessTree(Process root)
