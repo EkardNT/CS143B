@@ -34,8 +34,6 @@ namespace Project1
 			messageBoard.Receive<CompleteIOCommand>(OnCompleteIO);
 			messageBoard.Receive<ShowProcessCommand>(OnShowProcess);
 			messageBoard.Receive<ShowResourceCommand>(OnShowResource);
-			messageBoard.Receive<ListProcessesCommand>(OnListProcesses);
-			messageBoard.Receive<ListResourcesCommand>(OnListResources);
 			messageBoard.Receive<DebugCommand>(OnDebug);
 
 			// Create simulation state.
@@ -354,113 +352,117 @@ namespace Project1
 
 		private void OnShowProcess(ShowProcessCommand command)
 		{
-			Process process;
-			if (!processes.TryGetValue(command.ProcessName, out process))
+			if (command.ProcessName == null)
 			{
-				output.WriteLine(Purpose.Error, "No process with name \"{0}\" exists in the system.", command.ProcessName);
-				return;
+				const string Format = "{0,5}{1,5}{2,8}{3,8}{4,10}";
+				output.WriteLine(Purpose.Info, "PROCESSES: {0} total", processes.Count);
+				using (output.Indent())
+				{
+					output.WriteLine(Purpose.Info, Format, "PID", "Pri", "Status", "Parent", "Children");
+					foreach (var process in processes.Values)
+						output.WriteLine(
+							Purpose.Info,
+							Format,
+							process.Name,
+							process.Priority,
+							process.Status,
+							process.Parent == null ? "-" : process.Parent.Name,
+							Node<Process>.Count(process.ChildList));
+				}
 			}
-
-			output.WriteLine(Purpose.Info, "PROCESS: {0}", process.Name);
-			using (output.Indent())
+			else
 			{
-				output.WriteLine(Purpose.Info, "Priority: {0}", process.Priority);
-				output.WriteLine(Purpose.Info, "Status: {0}", process.Status);
-				output.WriteLine(Purpose.Info, "Parent: {0}", process.Parent != null ? process.Parent.Name : "none");
-				output.Write(Purpose.Info, "Child List -> ");
-				Node<Process>.VisitAll(process.ChildList, proc => output.Write(Purpose.Info, "({0}) -> ", proc.Name));
-				output.WriteLine(Purpose.Info, "[end]");
-				if (process.HeldResources.Any(pair => pair.Value > 0))
+				Process process;
+				if (!processes.TryGetValue(command.ProcessName, out process))
 				{
-					output.WriteLine(Purpose.Info, "Held Resources: ");
-					using (output.Indent())
-						foreach (var pair in process.HeldResources.Where(pair => pair.Value > 0))
-							output.WriteLine(Purpose.Info, "{0}: {1}", pair.Key, pair.Value);
+					output.WriteLine(Purpose.Error, "No process with name \"{0}\" exists in the system.", command.ProcessName);
+					return;
 				}
-				else
-					output.WriteLine(Purpose.Info, "Held Resources: none");
-				if (process.ReadyNode != null)
+
+				output.WriteLine(Purpose.Info, "PROCESS: {0}", process.Name);
+				using (output.Indent())
 				{
-					output.Write(Purpose.Info, "Ready Position: [{0}] -> ", process.Priority);
-					Node<Process>.VisitAll(readyQueue[process.Priority],
-						proc => output.Write(
-							Purpose.Info, proc == process ? "{{{0}}} -> " : "({0}) -> ",
-							proc.Name));
+					output.WriteLine(Purpose.Info, "Priority: {0}", process.Priority);
+					output.WriteLine(Purpose.Info, "Status: {0}", process.Status);
+					output.WriteLine(Purpose.Info, "Parent: {0}", process.Parent != null ? process.Parent.Name : "none");
+					output.Write(Purpose.Info, "Child List -> ");
+					Node<Process>.VisitAll(process.ChildList, proc => output.Write(Purpose.Info, "({0}) -> ", proc.Name));
 					output.WriteLine(Purpose.Info, "[end]");
-				}
-				if (process.WaitingNode != null)
-				{
-					output.Write(Purpose.Info, "Waiting Position: [{0}] -> ", process.WaitingResourceName);
-					Node<AccessRequest>.VisitAll(
-						resources[process.WaitingResourceName].WaitingList,
-						req => output.Write(
-							Purpose.Info, req.Process == process ? "{{{0},{1}}} -> " : "({0},{1}) -> ",
-							req.Process.Name,
-							req.Amount));
-					output.WriteLine(Purpose.Info, "[end]");
+					if (process.HeldResources.Any(pair => pair.Value > 0))
+					{
+						output.WriteLine(Purpose.Info, "Held Resources: ");
+						using (output.Indent())
+							foreach (var pair in process.HeldResources.Where(pair => pair.Value > 0))
+								output.WriteLine(Purpose.Info, "{0}: {1}", pair.Key, pair.Value);
+					}
+					else
+						output.WriteLine(Purpose.Info, "Held Resources: none");
+					if (process.ReadyNode != null)
+					{
+						output.Write(Purpose.Info, "Ready Position: [{0}] -> ", process.Priority);
+						Node<Process>.VisitAll(readyQueue[process.Priority],
+							proc => output.Write(
+								Purpose.Info, proc == process ? "{{{0}}} -> " : "({0}) -> ",
+								proc.Name));
+						output.WriteLine(Purpose.Info, "[end]");
+					}
+					if (process.WaitingNode != null)
+					{
+						output.Write(Purpose.Info, "Waiting Position: [{0}] -> ", process.WaitingResourceName);
+						Node<AccessRequest>.VisitAll(
+							resources[process.WaitingResourceName].WaitingList,
+							req => output.Write(
+								Purpose.Info, req.Process == process ? "{{{0},{1}}} -> " : "({0},{1}) -> ",
+								req.Process.Name,
+								req.Amount));
+						output.WriteLine(Purpose.Info, "[end]");
+					}
 				}
 			}
 		}
 
 		private void OnShowResource(ShowResourceCommand command)
 		{
-			Resource resource;
-			if (!resources.TryGetValue(command.ResourceName, out resource))
+			if (command.ResourceName == null)
 			{
-				output.WriteLine(Purpose.Error, "No resource with name \"{0}\" exists in the system.", command.ResourceName);
-				return;
+				const string Format = "{0,6}{1,7}{2,6}{3,9}";
+				output.WriteLine(Purpose.Info, "RESOURCES: {0} total", resources.Count);
+				using (output.Indent())
+				{
+					output.WriteLine(Purpose.Info, Format, "Name", "Total", "Free", "Waiting");
+					foreach (var resource in resources.Values)
+						output.WriteLine(
+							Purpose.Info,
+							Format,
+							resource.Name,
+							resource.Total,
+							resource.Available,
+							Node<AccessRequest>.Count(resource.WaitingList));
+				}
 			}
-
-			output.WriteLine(Purpose.Info, "RESOURCE: {0}", resource.Name);
-			using (output.Indent())
+			else
 			{
-				output.WriteLine(Purpose.Info, "Total: {0}", resource.Total);
-				output.WriteLine(Purpose.Info, "Available: {0}", resource.Available);
-				output.Write(Purpose.Info, "Waiting list: -> ");
-				Node<AccessRequest>.VisitAll(
-					resource.WaitingList,
-					req => output.Write(Purpose.Info, "({0},{1}) -> ", req.Process.Name, req.Amount));
-				output.WriteLine(Purpose.Info, "[end]");
-			}
-		}
+				Resource resource;
+				if (!resources.TryGetValue(command.ResourceName, out resource))
+				{
+					output.WriteLine(Purpose.Error, "No resource with name \"{0}\" exists in the system.", command.ResourceName);
+					return;
+				}
 
-		private void OnListProcesses(ListProcessesCommand command)
-		{
-			const string Format = "{0,5}{1,5}{2,8}{3,8}{4,10}";
-			output.WriteLine(Purpose.Info, "PROCESSES: {0} total", processes.Count);
-			using (output.Indent())
-			{
-				output.WriteLine(Purpose.Info, Format, "PID", "Pri", "Status", "Parent", "Children");
-				foreach (var process in processes.Values)
-					output.WriteLine(
-						Purpose.Info,
-						Format,
-						process.Name,
-						process.Priority,
-						process.Status,
-						process.Parent == null ? "-" : process.Parent.Name,
-						Node<Process>.Count(process.ChildList));
-			}
-		}
-
-		private void OnListResources(ListResourcesCommand command)
-		{
-			const string Format = "{0,6}{1,7}{2,6}{3,9}";
-			output.WriteLine(Purpose.Info, "RESOURCES: {0} total", resources.Count);
-			using (output.Indent())
-			{
-				output.WriteLine(Purpose.Info, Format, "Name", "Total", "Free", "Waiting");
-				foreach (var resource in resources.Values)
-					output.WriteLine(
-						Purpose.Info,
-						Format,
-						resource.Name,
-						resource.Total,
-						resource.Available,
-						Node<AccessRequest>.Count(resource.WaitingList));
+				output.WriteLine(Purpose.Info, "RESOURCE: {0}", resource.Name);
+				using (output.Indent())
+				{
+					output.WriteLine(Purpose.Info, "Total: {0}", resource.Total);
+					output.WriteLine(Purpose.Info, "Available: {0}", resource.Available);
+					output.Write(Purpose.Info, "Waiting list: -> ");
+					Node<AccessRequest>.VisitAll(
+						resource.WaitingList,
+						req => output.Write(Purpose.Info, "({0},{1}) -> ", req.Process.Name, req.Amount));
+					output.WriteLine(Purpose.Info, "[end]");
+				}
 			}
 		}
-
+		
 		private void OnDebug(DebugCommand command)
 		{
 			output.WriteLine(Purpose.Info, "DEBUGGING INFO");

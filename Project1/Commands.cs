@@ -80,7 +80,7 @@ namespace Project1
 		public abstract string Description { get; }
 		public abstract void LoadParams(LoadParamsContext context);
 
-		protected static void TryLoadProcessName(LoadParamsContext context, int index, out string processName, bool singleCharNamesOnly = true)
+		protected static void RequiredProcessName(LoadParamsContext context, int index, out string processName, bool singleCharNamesOnly = true)
 		{
 			processName = null;
 			if (context.TokenCount <= index)
@@ -93,9 +93,21 @@ namespace Project1
 				processName = context[index];
 		}
 
-		protected static void TryLoadCount(LoadParamsContext context, int index, out int count)
+		protected static void OptionalProcessName(LoadParamsContext context, int index, out string processName, bool singleCharNamesOnly = true)
 		{
-			count = 0;
+			processName = null;
+			if (context.TokenCount <= index)
+				return;
+			if (string.IsNullOrWhiteSpace(context[index]))
+				context.ReportError("Process name cannot be empty.");
+			else if (singleCharNamesOnly && new StringInfo(context[index]).LengthInTextElements > 1)
+				context.ReportError("Process name can be at most 1 character.");
+			else
+				processName = context[index];
+		}
+
+		protected static void RequiredCount(LoadParamsContext context, int index, out int count)
+		{
 			if (context.TokenCount <= index)
 				count = 1; // Default value if not provided instead of error.
 			else if (!int.TryParse(context[index], NumberStyles.None, CultureInfo.InvariantCulture, out count))
@@ -104,7 +116,7 @@ namespace Project1
 				context.ReportError("Count cannot be less than 1.");
 		}
 
-		protected static void TryLoadResourceName(LoadParamsContext context, int index, out string resourceName)
+		protected static void RequiredResourceName(LoadParamsContext context, int index, out string resourceName)
 		{
 			resourceName = null;
 			if (context.TokenCount <= index)
@@ -115,7 +127,18 @@ namespace Project1
 				resourceName = context[index];
 		}
 
-		protected static void TryLoadPriority(LoadParamsContext context, int index, out int priority)
+		protected static void OptionalResourceName(LoadParamsContext context, int index, out string resourceName)
+		{
+			resourceName = null;
+			if (context.TokenCount <= index)
+				return;
+			if (string.IsNullOrWhiteSpace(context[index]))
+				context.ReportError("Resource name cannot be empty.");
+			else
+				resourceName = context[index];
+		}
+
+		protected static void RequiredPriority(LoadParamsContext context, int index, out int priority)
 		{
 			priority = 0;
 			if (context.TokenCount <= index)
@@ -207,8 +230,8 @@ namespace Project1
 
 		public override void LoadParams(LoadParamsContext context)
 		{
-			TryLoadProcessName(context, 0, out processName);
-			TryLoadPriority(context, 1, out priority);
+			RequiredProcessName(context, 0, out processName);
+			RequiredPriority(context, 1, out priority);
 		}
 	}
 
@@ -238,7 +261,7 @@ namespace Project1
 
 		public override void LoadParams(LoadParamsContext context)
 		{
-			TryLoadProcessName(context, 0, out processName);
+			RequiredProcessName(context, 0, out processName);
 		}
 	}
 
@@ -278,8 +301,8 @@ namespace Project1
 
 		public override void LoadParams(LoadParamsContext context)
 		{
-			TryLoadResourceName(context, 0, out resourceName);
-			TryLoadCount(context, 1, out count);
+			RequiredResourceName(context, 0, out resourceName);
+			RequiredCount(context, 1, out count);
 		}
 	}
 
@@ -319,8 +342,8 @@ namespace Project1
 
 		public override void LoadParams(LoadParamsContext context)
 		{
-			TryLoadResourceName(context, 0, out resourceName);
-			TryLoadCount(context, 1, out count);
+			RequiredResourceName(context, 0, out resourceName);
+			RequiredCount(context, 1, out count);
 		}
 	}
 
@@ -411,12 +434,12 @@ namespace Project1
 
 		public override string Description
 		{
-			get { return "Displays information about the process named <name>. <name> is a single character."; }
+			get { return "Displays information about the process named <name>, or all processes if <name> is not provided. <name> is a single character."; }
 		}
 
 		public override void LoadParams(LoadParamsContext context)
 		{
-			TryLoadProcessName(context, 0, out processName, false);
+			OptionalProcessName(context, 0, out processName, false);
 		}
 	}
 
@@ -441,56 +464,12 @@ namespace Project1
 
 		public override string Description
 		{
-			get { return "Displays information about the resource named <name>."; }
+			get { return "Displays information about the resource named <name>, or all resources if <name> is not provided."; }
 		}
 
 		public override void LoadParams(LoadParamsContext context)
 		{
-			TryLoadResourceName(context, 0, out resourceName);
-		}
-	}
-
-	public class ListProcessesCommand : CommandBase
-	{
-		public override string Name
-		{
-			get { return "list-proc"; }
-		}
-
-		public override string Usage
-		{
-			get { return "list-proc"; }
-		}
-
-		public override string Description
-		{
-			get { return "Lists all processes and their statuses."; }
-		}
-
-		public override void LoadParams(LoadParamsContext context)
-		{
-		}
-	}
-
-	public class ListResourcesCommand : CommandBase
-	{
-		public override string Name
-		{
-			get { return "list-res"; }
-		}
-
-		public override string Usage
-		{
-			get { return "list-res"; }
-		}
-
-		public override string Description
-		{
-			get { return "Lists all resources and their statuses."; }
-		}
-
-		public override void LoadParams(LoadParamsContext context)
-		{
+			OptionalResourceName(context, 0, out resourceName);
 		}
 	}
 
