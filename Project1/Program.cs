@@ -84,11 +84,14 @@ namespace Project1
 				dispatcher.Dispatch(input.CurrentInput);
 				simulator.Tick();
 				// Report running process.
-				var running = simulator.RunningProcess;
-				if (running != null)
-					output.WriteLine(Purpose.Output, "{0} is running.", running.Name);
-				else
-					output.WriteLine(Purpose.Output, "No processes in system.");
+				if (!quit)
+				{
+					var running = simulator.RunningProcess;
+					if (running != null)
+						output.WriteLine(Purpose.Output, "{0} is running.", running.Name);
+					else
+						output.WriteLine(Purpose.Output, "No processes in system.");
+				}
 			}
 
 			output.WriteLine(Purpose.Output, quit ? "Simulator terminated." : "Simulator finished.");

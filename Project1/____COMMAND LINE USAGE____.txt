@@ -1,0 +1,7 @@
+The program accepts up to two optional arguments.
+
+If no arguments are provided, the program accepts user input from the command line and also prints output to the command line.
+
+If one argument is provided, it is interpreted as an input file path. The program reads input from the specified file and prints output to the command line.
+
+If two arguments are provided, the first is interpreted as an input file path and the second as an output file path. The program reads input from the specified input file and writes output to the specified output file.
