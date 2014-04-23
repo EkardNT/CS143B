@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 
 namespace Project2
 {
@@ -99,6 +100,8 @@ namespace Project2
 			if (headFreeSegment == segmentAddr)
 				headFreeSegment = NullPointer;
 
+			AssertStateCorrect();
+
 			allocation = segmentAddr + OffsetToFirstUsableWord;
 			return true;
 		}
@@ -133,20 +136,55 @@ namespace Project2
 				// Case 1: If only right neighbor is free, coalesce
 				// the right neighbor into this segment, preserving
 				// the right segment's linked list pointers.
+				Debug.Assert(mainMemory[segmentAddr] > 0);
+				Debug.Assert(mainMemory[rightNeighborAddr] < 0);
+				int coalescedSize = mainMemory[segmentAddr] - mainMemory[rightNeighborAddr];
+				mainMemory[EndTagAddr(segmentAddr)] = mainMemory[segmentAddr] = -coalescedSize;
+				mainMemory[NextPtrAddr(segmentAddr)] = mainMemory[NextPtrAddr(rightNeighborAddr)];
+				mainMemory[PrevPtrAddr(segmentAddr)] = mainMemory[PrevPtrAddr(rightNeighborAddr)];
+				if (mainMemory[NextPtrAddr(segmentAddr)] != NullPointer)
+					mainMemory[PrevPtrAddr(mainMemory[NextPtrAddr(segmentAddr)])] = segmentAddr;
+				if (mainMemory[PrevPtrAddr(segmentAddr)] != NullPointer)
+					mainMemory[NextPtrAddr(mainMemory[PrevPtrAddr(segmentAddr)])] = segmentAddr;
+				if (headFreeSegment == rightNeighborAddr)
+					headFreeSegment = segmentAddr;
 			}
 			else if (leftNeighborFree && !rightNeighborFree)
 			{
 				// Case 2: If only left neighbor is free, coalesce
 				// this segment into the left neighbor, preserving the
 				// left segment's linked list pointers.
+				Debug.Assert(mainMemory[segmentAddr] > 0);
+				Debug.Assert(mainMemory[leftNeighborAddr] < 0);
+				int coalescedSize = mainMemory[segmentAddr] - mainMemory[leftNeighborAddr];
+				mainMemory[EndTagAddr(leftNeighborAddr)] = mainMemory[leftNeighborAddr] = -coalescedSize;
 			}
 			else if (leftNeighborFree && rightNeighborFree)
 			{
 				// Case 3: If both neighbors are free, coalesce this
-				// segment with both neighbors, handling the linked
-				// list pointers appropriately.
+				// segment with both neighbors. This is the most 
+				// involved case because the linked list being 
+				// unordered means the left and right segments
+				// might not be adjacent in the linked list.
+				// We solve this problem by first deleting the right
+				// neighbor from the linked list, then expanding
+				// the left neighbor to include the newly freed
+				// segment and the right neighbor segment.
+				if (mainMemory[NextPtrAddr(rightNeighborAddr)] != NullPointer)
+					mainMemory[PrevPtrAddr(mainMemory[NextPtrAddr(rightNeighborAddr)])] = mainMemory[PrevPtrAddr(rightNeighborAddr)];
+				if (mainMemory[PrevPtrAddr(rightNeighborAddr)] != NullPointer)
+					mainMemory[NextPtrAddr(mainMemory[PrevPtrAddr(rightNeighborAddr)])] = mainMemory[NextPtrAddr(rightNeighborAddr)];
+				if (headFreeSegment == rightNeighborAddr)
+					headFreeSegment = mainMemory[NextPtrAddr(rightNeighborAddr)];
+				Debug.Assert(mainMemory[segmentAddr] > 0);
+				Debug.Assert(mainMemory[leftNeighborAddr] < 0);
+				Debug.Assert(mainMemory[rightNeighborAddr] < 0);
+				int coalescedSize = -mainMemory[leftNeighborAddr] + mainMemory[segmentAddr] - mainMemory[rightNeighborAddr];
+				mainMemory[EndTagAddr(leftNeighborAddr)] = mainMemory[leftNeighborAddr] = -coalescedSize;
 			}
 			// ReSharper restore ConditionIsAlwaysTrueOrFalse
+
+			AssertStateCorrect();
 		}
 
 		private int EndTagAddr(int segmentAddr)
@@ -174,6 +212,29 @@ namespace Project2
 		{
 			rightNeighborAddr = segmentAddr + Math.Abs(mainMemory[segmentAddr]);
 			return rightNeighborAddr < mainMemory.Length;
+		}
+
+		[Conditional("DEBUG")]
+		private void AssertStateCorrect()
+		{
+			// Make sure head node's prev pointer is null.
+			if (headFreeSegment != NullPointer)
+				Debug.Assert(mainMemory[PrevPtrAddr(headFreeSegment)] == NullPointer, "Head segment should never have a non-null previous pointer.");
+
+			// Check linked list state.
+			int current = headFreeSegment;
+			while (current != NullPointer)
+			{
+				// Make sure next and prev pointers are mutually correct.
+				if (mainMemory[PrevPtrAddr(current)] != NullPointer)
+					Debug.Assert(mainMemory[NextPtrAddr(mainMemory[PrevPtrAddr(current)])] == current, "Inconsistent linked list state.");
+				if (mainMemory[NextPtrAddr(current)] != NullPointer)
+					Debug.Assert(mainMemory[PrevPtrAddr(mainMemory[PrevPtrAddr(current)])] == current, "Inconsistent linked list state.");
+				// Make sure current node marked as free.
+				Debug.Assert(mainMemory[current] < 0, "A node on the free list was not marked as free.");
+				// Make sure start and end tag are equal.
+				Debug.Assert(mainMemory[current] == mainMemory[EndTagAddr(current)], "Inconsistent start and end tag values.");
+			}
 		}
 	}
 }
