@@ -13,7 +13,19 @@ namespace Project2
 	{
 		public static MemoryStrategy FirstFit()
 		{
-			throw new NotImplementedException();
+			return (int headSegment, int[] mainMemory, int minSegmentSize, out int segmentAddress, out int segmentsInspected) =>
+			{
+				segmentsInspected = 0;
+				segmentAddress = headSegment;
+				while(segmentAddress != MemoryManager.NullPointer)
+				{
+					segmentsInspected++;
+					if (-mainMemory[segmentAddress] >= minSegmentSize)
+						return true;
+					segmentAddress = mainMemory[MemoryManager.NextPtrAddr(segmentAddress)];
+				}
+				return false;
+			};
 		}
 
 		public static MemoryStrategy NextFit()
