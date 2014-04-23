@@ -3,6 +3,7 @@
 namespace Project2
 {
 	public delegate bool MemoryStrategy(
+		int headSegment,
 		int[] mainMemory,
 		int minSegmentSize,
 		out int segmentAddress,

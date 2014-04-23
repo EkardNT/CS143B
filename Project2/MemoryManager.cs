@@ -4,21 +4,26 @@ namespace Project2
 {
 	public class MemoryManager
 	{
-		// Number of words of bookkeeping overhead required for each hole.
-		private const int OverheadPerSegment = 4;
+		// Number of words of bookkeeping overhead required within a free segment.
+		private const int OverheadPerFreeSegment = 4;
+		// Number of words of bookkeeping overhead required within a reserved segment.
+		private const int OverheadPerReservedSegment = 2;
+		// Offset in a reserved segment from the segment start address to the first
+		// user-usable word.
+		private const int OffsetToFirstUsableWord = 1;
 		// Value of previous and/or next segment pointers when they do
 		// not point to any segment.
 		public const int NullPointer = -1;
 
-		// Linear main memory array.
+		private int headFreeSegment;
 		private readonly int[] mainMemory;
 		private readonly MemoryStrategy strategy;
 
 		public MemoryManager(int memorySize, MemoryStrategy strategy)
 		{
-			if (memorySize < OverheadPerSegment)
+			if (memorySize < OverheadPerFreeSegment)
 				throw new ArgumentOutOfRangeException("memorySize",
-					string.Format("memorySize must be at least {0}, the amount of overhead per hole.", OverheadPerSegment));
+					string.Format("memorySize must be at least {0}, the amount of overhead per hole.", OverheadPerFreeSegment));
 			if (strategy == null)
 				throw new ArgumentNullException("strategy");
 
@@ -26,10 +31,11 @@ namespace Project2
 
 			// Initialize memory to single free segment.
 			mainMemory = new int[memorySize];
+			headFreeSegment = 0;
 			// Tags, where the negative means this is a free segment.
-			mainMemory[EndTagAddr(0)] = mainMemory[0] = -memorySize;
+			mainMemory[EndTagAddr(headFreeSegment)] = mainMemory[headFreeSegment] = -memorySize;
 			// Prev and Next pointers.
-			mainMemory[PrevPtrAddr(0)] = mainMemory[NextPtrAddr(0)] = NullPointer;
+			mainMemory[PrevPtrAddr(headFreeSegment)] = mainMemory[NextPtrAddr(headFreeSegment)] = NullPointer;
 		}
 
 		public bool Request(int count, out int allocation, out int holesExamined)
@@ -37,50 +43,63 @@ namespace Project2
 			allocation = NullPointer;
 			holesExamined = 0;
 
-			if (count <= 0 || count > mainMemory.Length)
+			if (count < 1 || count > mainMemory.Length)
 				throw new ArgumentOutOfRangeException("count");
 
 			// Ask the strategy to find the segment to allocate.
 			// If it cannot, the request fails.
-			int segmentAddress;
-			if (!strategy(mainMemory, count + OverheadPerSegment, out segmentAddress, out holesExamined))
+			int reservedSize = count + OverheadPerReservedSegment,
+				segmentAddr;
+			if (!strategy(headFreeSegment, mainMemory, reservedSize, out segmentAddr, out holesExamined))
 				return false;
 
 			// Make sure the strategy didn't give us an invalid segment.
 			int segmentSize = Math.Abs(mainMemory[allocation]);
-			if (segmentSize - OverheadPerSegment < count)
+			if (reservedSize > segmentSize)
 				throw new InvalidOperationException("Memory strategy returned a segment of insufficient size.");
 			if (mainMemory[allocation] > 0)
 				throw new InvalidOperationException("Memory strategy returned an already reserved segment.");
 
 			// Split if there is space for a newly split segment with at least
 			// one user-usable element.
-			int splitSize = segmentSize - (count + OverheadPerSegment);
-			if (splitSize > OverheadPerSegment)
+			int splitSize = segmentSize - reservedSize;
+			if (splitSize >= OverheadPerFreeSegment)
 			{
-				int splitSegmentAddress = segmentAddress + count + OverheadPerSegment;
-				mainMemory[EndTagAddr(splitSegmentAddress)] = mainMemory[splitSegmentAddress] = -splitSize;
-				mainMemory[PrevPtrAddr(splitSegmentAddress)] = segmentAddress;
-				mainMemory[NextPtrAddr(segmentAddress)] = splitSegmentAddress;
-				mainMemory[NextPtrAddr(splitSegmentAddress)] = mainMemory[NextPtrAddr(segmentAddress)];
-				if (mainMemory[NextPtrAddr(splitSegmentAddress)] != NullPointer)
-					mainMemory[PrevPtrAddr(mainMemory[NextPtrAddr(splitSegmentAddress)])] = splitSegmentAddress;
-				mainMemory[EndTagAddr(segmentAddress)] = mainMemory[segmentAddress] = count + OverheadPerSegment;
+				int splitSegmentAddr = segmentAddr + count + OverheadPerReservedSegment;
+				mainMemory[EndTagAddr(splitSegmentAddr)] = mainMemory[splitSegmentAddr] = -splitSize;
+				mainMemory[PrevPtrAddr(splitSegmentAddr)] = segmentAddr;
+				mainMemory[NextPtrAddr(splitSegmentAddr)] = mainMemory[NextPtrAddr(segmentAddr)];
+				mainMemory[NextPtrAddr(segmentAddr)] = splitSegmentAddr;
+				if (mainMemory[NextPtrAddr(splitSegmentAddr)] != NullPointer)
+					mainMemory[PrevPtrAddr(mainMemory[NextPtrAddr(splitSegmentAddr)])] = splitSegmentAddr;
 			}
+
+			// Adjust size.
+			mainMemory[EndTagAddr(segmentAddr)] = mainMemory[segmentAddr] = reservedSize;
 
 			// Remove the segment from the linked list of free segments.
-			if (mainMemory[PrevPtrAddr(segmentAddress)] != NullPointer)
+			if (mainMemory[NextPtrAddr(segmentAddr)] != NullPointer)
 			{
-				mainMemory[NextPtrAddr(mainMemory[PrevPtrAddr(segmentAddress)])] = mainMemory[NextPtrAddr(segmentAddress)];
-				mainMemory[PrevPtrAddr(segmentAddress)] = NullPointer;
+				if (headFreeSegment == segmentAddr)
+					headFreeSegment = mainMemory[NextPtrAddr(segmentAddr)];
+				mainMemory[PrevPtrAddr(mainMemory[NextPtrAddr(segmentAddr)])] = mainMemory[PrevPtrAddr(segmentAddr)];
+				mainMemory[NextPtrAddr(segmentAddr)] = NullPointer;
 			}
-			if (mainMemory[NextPtrAddr(segmentAddress)] != NullPointer)
+			if (mainMemory[PrevPtrAddr(segmentAddr)] != NullPointer)
 			{
-				mainMemory[PrevPtrAddr(mainMemory[NextPtrAddr(segmentAddress)])] = mainMemory[PrevPtrAddr(segmentAddress)];
-				mainMemory[NextPtrAddr(segmentAddress)] = NullPointer;
+				if (headFreeSegment == segmentAddr)
+					headFreeSegment = mainMemory[PrevPtrAddr(segmentAddr)];
+				mainMemory[NextPtrAddr(mainMemory[PrevPtrAddr(segmentAddr)])] = mainMemory[NextPtrAddr(segmentAddr)];
+				mainMemory[PrevPtrAddr(segmentAddr)] = NullPointer;
 			}
 
-			allocation = segmentAddress + 3;
+			// If this segment was the head segment and both of the above
+			// if blocks were skipped, then this was also the last free
+			// segment.
+			if (headFreeSegment == segmentAddr)
+				headFreeSegment = NullPointer;
+
+			allocation = segmentAddr + OffsetToFirstUsableWord;
 			return true;
 		}
 
@@ -89,35 +108,71 @@ namespace Project2
 			if (mainMemory[allocation] < 0)
 				throw new ArgumentException("Attempted to release non-reserved memory.", "allocation");
 
-			int segmentAddress = allocation - 3;
+			int
+				segmentAddr = allocation - OffsetToFirstUsableWord,
+				leftNeighborAddr,
+				rightNeighborAddr;
+			bool
+				leftNeighborFree = LeftNeighborAddr(segmentAddr, out leftNeighborAddr) && mainMemory[leftNeighborAddr] < 0,
+				rightNeighborFree = RightNeighborAddr(segmentAddr, out rightNeighborAddr) && mainMemory[rightNeighborAddr] < 0;
 
-			// Mark the segment as freed.
+			// ReSharper disable ConditionIsAlwaysTrueOrFalse
+			if (!leftNeighborFree && !rightNeighborFree)
+			{
+				// Case 0: If neither are free, add this segment to
+				// the head of the linked list.
+				mainMemory[EndTagAddr(segmentAddr)] = mainMemory[segmentAddr] = -mainMemory[segmentAddr];
+				mainMemory[NextPtrAddr(segmentAddr)] = headFreeSegment; // Possibly NullPointer.
+				mainMemory[PrevPtrAddr(segmentAddr)] = NullPointer;
+				if (headFreeSegment != NullPointer)
+					mainMemory[PrevPtrAddr(headFreeSegment)] = segmentAddr;
+				headFreeSegment = segmentAddr;
+			}
+			else if (!leftNeighborFree && rightNeighborFree)
+			{
+				// Case 1: If only right neighbor is free, coalesce
+				// the right neighbor into this segment, preserving
+				// the right segment's linked list pointers.
+			}
+			else if (leftNeighborFree && !rightNeighborFree)
+			{
+				// Case 2: If only left neighbor is free, coalesce
+				// this segment into the left neighbor, preserving the
+				// left segment's linked list pointers.
+			}
+			else if (leftNeighborFree && rightNeighborFree)
+			{
+				// Case 3: If both neighbors are free, coalesce this
+				// segment with both neighbors, handling the linked
+				// list pointers appropriately.
+			}
+			// ReSharper restore ConditionIsAlwaysTrueOrFalse
 		}
 
-		private int EndTagAddr(int segmentStart)
+		private int EndTagAddr(int segmentAddr)
 		{
-			return segmentStart + Math.Abs(mainMemory[segmentStart]) - 1;
+			return segmentAddr + Math.Abs(mainMemory[segmentAddr]) - 1;
 		}
 
-		private int NextPtrAddr(int segmentStart)
+		private int NextPtrAddr(int segmentAddr)
 		{
-			return segmentStart + 2;
+			return segmentAddr + 2;
 		}
 
-		private int PrevPtrAddr(int segmentStart)
+		private int PrevPtrAddr(int segmentAddr)
 		{
-			return segmentStart + 1;
+			return segmentAddr + 1;
 		}
 
-		private bool LeftNeighborAddr(int segmentStart, out int leftNeighborAddr)
+		private bool LeftNeighborAddr(int segmentAddr, out int leftNeighborAddr)
 		{
-			leftNeighborAddr = segmentStart - Math.Abs(mainMemory[segmentStart - 1]);
+			leftNeighborAddr = segmentAddr - Math.Abs(mainMemory[segmentAddr - 1]);
 			return leftNeighborAddr >= 0;
 		}
 
-		private bool RightNeighborAddr(int segmentStart, out int rightNeighborAddr)
+		private bool RightNeighborAddr(int segmentAddr, out int rightNeighborAddr)
 		{
-			rightNeighborAddr = segmentStart + Math.Abs(mainMemory[segmentStart]);
+			rightNeighborAddr = segmentAddr + Math.Abs(mainMemory[segmentAddr]);
 			return rightNeighborAddr < mainMemory.Length;
 		}
 	}
