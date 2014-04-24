@@ -1,19 +1,26 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+
 namespace Project2
 {
 	internal static class Program
 	{
+		private class Allocation
+		{
+			public int Address { get; private set; }
+			public int Size { get; private set; }
+
+			public Allocation(int address, int size)
+			{
+				Address = address;
+				Size = size;
+			}
+		}
+
 		private static void Main(string[] args)
 		{
-			var memory = new MemoryManager(200, MemoryStrategies.FirstFit());
-			int allocation, holesExamined;
-			for (int i = 0; i < 10; i++)
-			{
-				memory.Request(10, out allocation, out holesExamined);
-			}
-			memory.Request(20, out allocation, out holesExamined);
-			Console.Read();
+			
 		}
 
 		private static void Driver(
@@ -22,32 +29,45 @@ namespace Project2
 			Random random,
 			int simulationSteps,
 			int memorySize,
-			MemoryStrategy strategy)
+			MemoryStrategy strategy,
+			out double averageSearchTime,
+			out double averageMemoryUtilization)
 		{
 			// Setup driver.
 			var mm = new MemoryManager(memorySize, strategy);
-			var reserved = new List<int>();
+			var reserved = new List<Allocation>();
 
 			// Statistics
-			int totalHolesExamined = 0;
+			long totalHolesExamined = 0;
+			double totalMemoryUtilization = 0;
 
 			for (int i = 0; i < simulationSteps; i++)
 			{
 				int requestSize = random.NextGaussian(averageRequestSize, standardDeviation, 1, memorySize);
-				int allocation, holesExamined;
-				while (mm.Request(requestSize, out allocation, out holesExamined))
+				int allocationAddr, holesExamined;
+				Allocation alloc;
+				while (mm.Request(requestSize, out allocationAddr, out holesExamined))
 				{
-					reserved.Add(allocation);
+					reserved.Add(alloc = new Allocation(allocationAddr, requestSize));
 					int placeToSwap = random.Next(reserved.Count);
 					reserved[reserved.Count - 1] = reserved[placeToSwap];
-					reserved[placeToSwap] = allocation;
-
+					reserved[placeToSwap] = alloc;
 					totalHolesExamined += holesExamined;
-
 					requestSize = random.NextGaussian(averageRequestSize, standardDeviation, 1, memorySize);
 				}
+				// Count holes examined by failed request.
 				totalHolesExamined += holesExamined;
+				// Record memory utilization.
+				totalMemoryUtilization += reserved.Sum(allocation => allocation.Size) / (double)memorySize;
+				// Release a random reserved segment. Because the reserved list
+				// is randomly ordered, we simply (and efficiently) remove the
+				// last element.
+				mm.Release(reserved[reserved.Count - 1].Address);
+				reserved.RemoveAt(reserved.Count - 1);
 			}
+
+			averageSearchTime = totalHolesExamined / (double) simulationSteps;
+			averageMemoryUtilization = totalMemoryUtilization / simulationSteps;
 		}
 
 		private static int NextGaussian(this Random random, double mean, double stDev, int min, int max)
