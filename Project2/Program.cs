@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Project2
 {
@@ -18,9 +20,41 @@ namespace Project2
 			}
 		}
 
+		private static int[] MemorySizes = new[]
+		{
+			1000, 10000, 100000, 1000000
+		};
+		private const int SimulationSteps = 100000;
+
 		private static void Main(string[] args)
 		{
-			
+			foreach(int memorySize in MemorySizes)
+			{
+				var rand = new Random();
+				using(var writer = File.CreateText(string.Format("memory{0}.csv", memorySize)))
+				{
+					writer.WriteLine("a,d,Average Memory Utilization,Average Search Time");
+					for (int a = 100; a <= memorySize / 3; a += memorySize / 100)
+					{
+						for (int d = 50; d <= memorySize / 3; d += memorySize / 100)
+						{
+							int aCopy = a,
+								dCopy = d;
+							double averageMemoryUtilization, averageSearchTime;
+							Driver(
+								aCopy,
+								dCopy,
+								new Random(rand.Next()),
+								SimulationSteps,
+								memorySize,
+								MemoryStrategies.FirstFit,
+								out averageSearchTime,
+								out averageMemoryUtilization);
+							writer.WriteLine("{0},{1},{2:F4},{3:F4}", a, d, averageMemoryUtilization, averageSearchTime);
+						}
+					}
+				}				
+			}
 		}
 
 		private static void Driver(
@@ -62,8 +96,11 @@ namespace Project2
 				// Release a random reserved segment. Because the reserved list
 				// is randomly ordered, we simply (and efficiently) remove the
 				// last element.
-				mm.Release(reserved[reserved.Count - 1].Address);
-				reserved.RemoveAt(reserved.Count - 1);
+				if(reserved.Count > 0)
+				{
+					mm.Release(reserved[reserved.Count - 1].Address);
+					reserved.RemoveAt(reserved.Count - 1);
+				}
 			}
 
 			averageSearchTime = totalHolesExamined / (double) simulationSteps;
