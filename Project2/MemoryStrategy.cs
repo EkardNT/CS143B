@@ -39,6 +39,9 @@
 					segmentsInspected = 0;
 					segmentAddress = MemoryManager.NullPointer;
 
+					if (headSegment == MemoryManager.NullPointer)
+						return false;
+
 					if (currentSegmentAddr == MemoryManager.NullPointer)
 						currentSegmentAddr = headSegment;
 
@@ -60,7 +63,7 @@
 					if (!startedAtHead)
 					{
 						currentSegmentAddr = headSegment;
-						while (currentSegmentAddr != startAddr)
+						while (currentSegmentAddr != MemoryManager.NullPointer && currentSegmentAddr != startAddr)
 						{
 							segmentsInspected++;
 							if (-mainMemory[currentSegmentAddr] >= minSegmentSize)

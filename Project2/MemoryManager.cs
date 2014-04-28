@@ -45,86 +45,82 @@ namespace Project2
 			allocation = NullPointer;
 			holesExamined = 0;
 
+			AssertStateCorrect();
+
 			if (count < 1 || count > mainMemory.Length)
 				throw new ArgumentOutOfRangeException("count");
 
 			// Ask the strategy to find the segment to allocate.
-			// If it cannot, the request fails.
-			int reservedSize = count + OverheadPerReservedSegment,
+			// If it cannot, the request fails. Note that the
+			// min reservation size is the sum of the count and
+			// the overhead per FREE segment, not reserved, because
+			// otherwise we might reserve a segment of size 3.
+			// Then if we have to release that segment and it cannot
+			// coalesce with either neighbor, we would not have
+			// enough space for the 4 required bookkeeping elements
+			// for a free segment.
+			int minReservationSize = count + OverheadPerFreeSegment,
 				segmentAddr;
-			if (!strategy(headFreeSegment, mainMemory, reservedSize, out segmentAddr, out holesExamined))
+			if (!strategy(headFreeSegment, mainMemory, minReservationSize, out segmentAddr, out holesExamined))
 				return false;
 
 			// Make sure the strategy didn't give us an invalid segment.
 			if (segmentAddr == NullPointer)
 				throw new InvalidOperationException("Memory strategy returned a null pointer but did not indicate error.");
 			int segmentSize = Math.Abs(mainMemory[segmentAddr]);
-			if (reservedSize > segmentSize)
+			if (minReservationSize > segmentSize)
 				throw new InvalidOperationException("Memory strategy returned a segment of insufficient size.");
 			if (mainMemory[segmentAddr] > 0)
 				throw new InvalidOperationException("Memory strategy returned an already reserved segment.");
 
-			// Split if there is space for a newly split segment with at least
-			// one user-usable element.
-			int splitSize = segmentSize - reservedSize;
-			if (splitSize >= OverheadPerFreeSegment)
+			// Create a new segment with the remaining free space (if any),
+			int remainingSize = segmentSize - minReservationSize;
+			if (remainingSize >= OverheadPerFreeSegment)
 			{
-				int splitSegmentAddr = segmentAddr + count + OverheadPerReservedSegment;
-				mainMemory[splitSegmentAddr] = -splitSize;
-				mainMemory[EndTagAddr(splitSegmentAddr)] = -splitSize;
-				mainMemory[PrevPtrAddr(splitSegmentAddr)] = segmentAddr;
-				mainMemory[NextPtrAddr(splitSegmentAddr)] = mainMemory[NextPtrAddr(segmentAddr)];
-				mainMemory[NextPtrAddr(segmentAddr)] = splitSegmentAddr;
-				if (mainMemory[NextPtrAddr(splitSegmentAddr)] != NullPointer)
-					mainMemory[PrevPtrAddr(mainMemory[NextPtrAddr(splitSegmentAddr)])] = splitSegmentAddr;
-				// Adjust size.
-				mainMemory[segmentAddr] = reservedSize;
-				mainMemory[EndTagAddr(segmentAddr)] = reservedSize;
+				// Reserve the back of the original segment.
+				int reservedAddr = segmentAddr + remainingSize;
+				mainMemory[reservedAddr] = minReservationSize;
+				mainMemory[EndTagAddr(reservedAddr)] = minReservationSize;
+				ClearMemory(reservedAddr + 1, minReservationSize - OverheadPerReservedSegment);
+
+				allocation = reservedAddr + OffsetToFirstUsableWord;
+
+				// Maintain the free space at the front of the original segment.
+				// This allows us to ignore any potential manipulation of the
+				// linked list because the free node is in the same position
+				// and has the same pointers as the original segment.
+				int freeAddr = segmentAddr;
+				mainMemory[freeAddr] = -remainingSize;
+				mainMemory[EndTagAddr(freeAddr)] = -remainingSize;
+				ClearMemory(freeAddr + 3, remainingSize - OverheadPerFreeSegment);
 			}
 			else
 			{
-				// Adjust size.
-				mainMemory[segmentAddr] = segmentSize;
-				mainMemory[EndTagAddr(segmentAddr)] = segmentSize;
-			}
+				allocation = segmentAddr + OffsetToFirstUsableWord;
 
-			
+				// Remove the segment from the linked list of free segments.
+				if (mainMemory[NextPtrAddr(segmentAddr)] != NullPointer)
+					mainMemory[PrevPtrAddr(mainMemory[NextPtrAddr(segmentAddr)])] = mainMemory[PrevPtrAddr(segmentAddr)];
+				if (mainMemory[PrevPtrAddr(segmentAddr)] != NullPointer)
+					mainMemory[NextPtrAddr(mainMemory[PrevPtrAddr(segmentAddr)])] = mainMemory[NextPtrAddr(segmentAddr)];
 
-			// Remove the segment from the linked list of free segments.
-			if (mainMemory[NextPtrAddr(segmentAddr)] != NullPointer)
-			{
+				// Update the head pointer if necessary.
 				if (headFreeSegment == segmentAddr)
 					headFreeSegment = mainMemory[NextPtrAddr(segmentAddr)];
-				Debug.Assert(headFreeSegment != 3);
-				mainMemory[PrevPtrAddr(mainMemory[NextPtrAddr(segmentAddr)])] = mainMemory[PrevPtrAddr(segmentAddr)];
-				mainMemory[NextPtrAddr(segmentAddr)] = NullPointer;
-			}
-			if (mainMemory[PrevPtrAddr(segmentAddr)] != NullPointer)
-			{
-				if (headFreeSegment == segmentAddr)
-					headFreeSegment = mainMemory[PrevPtrAddr(segmentAddr)];
-				Debug.Assert(headFreeSegment != 3);
-				mainMemory[NextPtrAddr(mainMemory[PrevPtrAddr(segmentAddr)])] = mainMemory[NextPtrAddr(segmentAddr)];
-				mainMemory[PrevPtrAddr(segmentAddr)] = NullPointer;
-			}
 
-			// If this segment was the head segment and both of the above
-			// if blocks were skipped, then this was also the last free
-			// segment.
-			if (headFreeSegment == segmentAddr)
-				headFreeSegment = NullPointer;
-			Debug.Assert(headFreeSegment != 3);
-			
-			allocation = segmentAddr + OffsetToFirstUsableWord;
-
-			ClearMemory(allocation, count);
+				// Mark the segment as reserved.
+				mainMemory[segmentAddr] = segmentSize;
+				mainMemory[EndTagAddr(segmentAddr)] = segmentSize;
+				ClearMemory(segmentAddr + 1, segmentSize - OverheadPerReservedSegment);
+			}
 			AssertStateCorrect();
-
 			return true;
 		}
 
 		public void Release(int allocation)
 		{
+			AssertStateCorrect();
+
 			int
 				segmentAddr = allocation - OffsetToFirstUsableWord,
 				leftNeighborAddr,
@@ -150,8 +146,6 @@ namespace Project2
 				coalescedAddr = segmentAddr;
 				nextAddr = headFreeSegment;
 				prevAddr = NullPointer;
-				if (headFreeSegment != NullPointer)
-					mainMemory[PrevPtrAddr(headFreeSegment)] = segmentAddr;
 				headFreeSegment = segmentAddr;
 			}
 			else if (!leftNeighborFree && rightNeighborFree)
@@ -177,8 +171,8 @@ namespace Project2
 				Debug.Assert(mainMemory[leftNeighborAddr] < 0);
 				coalescedAddr = leftNeighborAddr;
 				coalescedSize = mainMemory[segmentAddr] - mainMemory[leftNeighborAddr];
-				nextAddr = NextPtrAddr(leftNeighborAddr);
-				prevAddr = PrevPtrAddr(leftNeighborAddr);
+				nextAddr = mainMemory[NextPtrAddr(leftNeighborAddr)];
+				prevAddr = mainMemory[PrevPtrAddr(leftNeighborAddr)];
 			}
 			else // if (leftNeighborFree && rightNeighborFree)
 			{
@@ -191,12 +185,12 @@ namespace Project2
 				// neighbor from the linked list, then expanding
 				// the left neighbor to include the newly freed
 				// segment and the right neighbor segment.
+				if (headFreeSegment == rightNeighborAddr)
+					headFreeSegment = mainMemory[NextPtrAddr(rightNeighborAddr)];
 				if (mainMemory[NextPtrAddr(rightNeighborAddr)] != NullPointer)
 					mainMemory[PrevPtrAddr(mainMemory[NextPtrAddr(rightNeighborAddr)])] = mainMemory[PrevPtrAddr(rightNeighborAddr)];
 				if (mainMemory[PrevPtrAddr(rightNeighborAddr)] != NullPointer)
-					mainMemory[NextPtrAddr(mainMemory[PrevPtrAddr(rightNeighborAddr)])] = mainMemory[NextPtrAddr(rightNeighborAddr)];
-				if (headFreeSegment == rightNeighborAddr)
-					headFreeSegment = mainMemory[NextPtrAddr(rightNeighborAddr)];
+					mainMemory[NextPtrAddr(mainMemory[PrevPtrAddr(rightNeighborAddr)])] = mainMemory[NextPtrAddr(rightNeighborAddr)];				
 				Debug.Assert(headFreeSegment != 3);
 				Debug.Assert(mainMemory[segmentAddr] > 0);
 				Debug.Assert(mainMemory[leftNeighborAddr] < 0);
@@ -268,6 +262,7 @@ namespace Project2
 			int current = headFreeSegment;
 			while (current != NullPointer)
 			{
+				Debug.Assert(mainMemory[current] != 0, "Linked list node points to element with value 0.");
 				// Make sure next and prev pointers are mutually correct.
 				if (mainMemory[PrevPtrAddr(current)] != NullPointer)
 					Debug.Assert(mainMemory[NextPtrAddr(mainMemory[PrevPtrAddr(current)])] == current, "Inconsistent linked list state.");
@@ -284,7 +279,7 @@ namespace Project2
 		[Conditional("DEBUG")]
 		private void ClearMemory(int start, int count)
 		{
-			for(int i = 0; i < count; i++)
+			for (int i = 0; i < count; i++)
 				mainMemory[start + i] = 0;
 		}
 	}

@@ -28,12 +28,25 @@ namespace Project2
 
 		private static void Main(string[] args)
 		{
+			double avgS, avgU;
+			Driver(10, 5, new Random(973102217), SimulationSteps, 100, MemoryStrategies.NextFit, out avgS, out avgU);
+			Console.WriteLine("FINISHED");
+			Console.Read();
+			return;
+			var tasks = new Task[4];
+
 			foreach(int memorySize in MemorySizes)
 			{
 				var rand = new Random();
-				using(var writer = File.CreateText(string.Format("memory{0}.csv", memorySize)))
+				using(var firstFitWriter = File.CreateText(string.Format("first_memory{0}.csv", memorySize)))
+				using(var nextFitWriter = File.CreateText(string.Format("next_memory{0}.csv", memorySize)))
+				using(var bestFitWriter = File.CreateText(string.Format("best_memory{0}.csv", memorySize)))
+				using(var worstFitWriter = File.CreateText(string.Format("worst_memory{0}.csv", memorySize)))
 				{
-					writer.WriteLine("a,d,Average Memory Utilization,Average Search Time");
+					firstFitWriter.WriteLine("a,d,Average Memory Utilization,Average Search Time");
+					nextFitWriter.WriteLine("a,d,Average Memory Utilization,Average Search Time");
+					bestFitWriter.WriteLine("a,d,Average Memory Utilization,Average Search Time");
+					worstFitWriter.WriteLine("a,d,Average Memory Utilization,Average Search Time");
 					for (int a = 100; a <= memorySize / 3; a += memorySize / 100)
 					{
 						for (int d = 50; d <= memorySize / 3; d += memorySize / 100)
@@ -41,18 +54,64 @@ namespace Project2
 							int aCopy = a,
 								dCopy = d;
 							double averageMemoryUtilization, averageSearchTime;
-							Driver(
+							int seed = rand.Next();
+							Console.WriteLine("[Driver a:{0} b:{1} seed:{2} memorySize:{3}]",
 								aCopy,
 								dCopy,
-								new Random(rand.Next()),
-								SimulationSteps,
-								memorySize,
-								MemoryStrategies.FirstFit,
-								out averageSearchTime,
-								out averageMemoryUtilization);
-							writer.WriteLine("{0},{1},{2:F4},{3:F4}", a, d, averageMemoryUtilization, averageSearchTime);
+								seed,
+								memorySize);
+							tasks[0] = Task.Run(() => {
+								Driver(
+									aCopy,
+									dCopy,
+									new Random(seed),
+									SimulationSteps,
+									memorySize,
+									MemoryStrategies.FirstFit,
+									out averageSearchTime,
+									out averageMemoryUtilization);
+								firstFitWriter.WriteLine("{0},{1},{2:F4},{3:F4}", a, d, averageMemoryUtilization, averageSearchTime);
+							});
+							tasks[1] = Task.Run(() => {
+								Driver(
+									aCopy,
+									dCopy,
+									new Random(seed),
+									SimulationSteps,
+									memorySize,
+									MemoryStrategies.NextFit,
+									out averageSearchTime,
+									out averageMemoryUtilization);
+								nextFitWriter.WriteLine("{0},{1},{2:F4},{3:F4}", a, d, averageMemoryUtilization, averageSearchTime);
+							});
+							tasks[2] = Task.Run(() => {
+								Driver(
+									aCopy,
+									dCopy,
+									new Random(seed),
+									SimulationSteps,
+									memorySize,
+									MemoryStrategies.BestFit,
+									out averageSearchTime,
+									out averageMemoryUtilization);
+								bestFitWriter.WriteLine("{0},{1},{2:F4},{3:F4}", a, d, averageMemoryUtilization, averageSearchTime);
+							});
+							tasks[3] = Task.Run(() => {
+								Driver(
+									aCopy,
+									dCopy,
+									new Random(seed),
+									SimulationSteps,
+									memorySize,
+									MemoryStrategies.WorstFit,
+									out averageSearchTime,
+									out averageMemoryUtilization);
+								worstFitWriter.WriteLine("{0},{1},{2:F4},{3:F4}", a, d, averageMemoryUtilization, averageSearchTime);
+							});
+							Task.WaitAll(tasks);
 						}
 					}
+					Console.WriteLine("Woot!");
 				}				
 			}
 		}
