@@ -20,13 +20,13 @@ namespace Project2
 			}
 		}
 
-		private static int[] MemorySizes = new[]
+		private static int[] MemorySizes =
 		{
 			1000, 10000, 100000, 1000000
 		};
 		private const int SimulationSteps = 100000;
 
-		private static void Main(string[] args)
+		private static void Main()
 		{
 			double avgS, avgU;
 			Driver(10, 5, new Random(973102217), SimulationSteps, 100, MemoryStrategies.NextFit, out avgS, out avgU);

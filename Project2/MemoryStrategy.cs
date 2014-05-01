@@ -15,16 +15,17 @@
 			{
 				return (int headSegment, int[] mainMemory, int minSegmentSize, out int segmentAddress, out int segmentsInspected) =>
 				{
-					segmentsInspected = 0;
-					segmentAddress = headSegment;
-					while (segmentAddress != MemoryManager.NullPointer)
+					int _segmentAddr = MemoryManager.NullPointer;
+					segmentsInspected = MemoryManager.TraverseFreeList(mainMemory, headSegment, segment =>
 					{
-						segmentsInspected++;
-						if (-mainMemory[segmentAddress] >= minSegmentSize)
-							return true;
-						segmentAddress = mainMemory[MemoryManager.NextPtrAddr(segmentAddress)];
-					}
-					return false;
+						if (-mainMemory[segment] >= minSegmentSize)
+						{
+							_segmentAddr = segment;
+							return false;
+						}
+						return true;
+					});
+					return (segmentAddress = _segmentAddr) != MemoryManager.NullPointer;
 				};
 			}
 		}
@@ -33,49 +34,27 @@
 		{
 			get
 			{
-				int currentSegmentAddr = MemoryManager.NullPointer;
+				int nextStartAddr = MemoryManager.NullPointer;
 				return (int headSegment, int[] mainMemory, int minSegmentSize, out int segmentAddress, out int segmentsInspected) =>
 				{
-					segmentsInspected = 0;
-					segmentAddress = MemoryManager.NullPointer;
-
-					if (headSegment == MemoryManager.NullPointer)
-						return false;
-
-					if (currentSegmentAddr == MemoryManager.NullPointer)
-						currentSegmentAddr = headSegment;
-
-					bool startedAtHead = currentSegmentAddr == headSegment;
-					int startAddr = currentSegmentAddr;
-
-					while (currentSegmentAddr != MemoryManager.NullPointer)
+					if (nextStartAddr == MemoryManager.NullPointer)
+						nextStartAddr = headSegment;
+					else if (mainMemory[nextStartAddr] == 0)
+						nextStartAddr = headSegment;
+					int _segmentAddr = MemoryManager.NullPointer;
+					segmentsInspected = MemoryManager.TraverseFreeList(mainMemory, nextStartAddr, segment =>
 					{
-						segmentsInspected++;
-						if (-mainMemory[currentSegmentAddr] >= minSegmentSize)
+						if (-mainMemory[segment] >= minSegmentSize)
 						{
-							segmentAddress = currentSegmentAddr;
-							currentSegmentAddr = mainMemory[MemoryManager.NextPtrAddr(currentSegmentAddr)];
-							return true;
+							nextStartAddr = mainMemory[MemoryManager.NextPtrAddr(segment)];
+							if (nextStartAddr == segment)
+								nextStartAddr = MemoryManager.NullPointer;
+							_segmentAddr = segment;
+							return false;
 						}
-						currentSegmentAddr = mainMemory[MemoryManager.NextPtrAddr(currentSegmentAddr)];
-					}
-					// Loop back around.
-					if (!startedAtHead)
-					{
-						currentSegmentAddr = headSegment;
-						while (currentSegmentAddr != MemoryManager.NullPointer && currentSegmentAddr != startAddr)
-						{
-							segmentsInspected++;
-							if (-mainMemory[currentSegmentAddr] >= minSegmentSize)
-							{
-								segmentAddress = currentSegmentAddr;
-								currentSegmentAddr = mainMemory[MemoryManager.NextPtrAddr(currentSegmentAddr)];
-								return true;
-							}
-							currentSegmentAddr = mainMemory[MemoryManager.NextPtrAddr(currentSegmentAddr)];
-						}
-					}
-					return false;
+						return true;
+					});
+					return (segmentAddress = _segmentAddr) != MemoryManager.NullPointer;
 				};
 			}
 		}
@@ -86,28 +65,24 @@
 			{
 				return (int headSegment, int[] mainMemory, int minSegmentSize, out int segmentAddress, out int segmentsInspected) =>
 				{
-					segmentsInspected = 0;
-					segmentAddress = MemoryManager.NullPointer;
-					int minSize = int.MaxValue,
-						currentAddress = headSegment,
-						segmentSize;
-					while (currentAddress != MemoryManager.NullPointer)
+					int _segmentAddr = MemoryManager.NullPointer,
+						minSize = int.MaxValue;
+					segmentsInspected = MemoryManager.TraverseFreeList(mainMemory, headSegment, segment =>
 					{
-						segmentsInspected++;
-						segmentSize = -mainMemory[currentAddress];
+						int segmentSize = -mainMemory[segment];
 						if (segmentSize == minSegmentSize)
 						{
-							segmentAddress = currentAddress;
-							return true;
+							_segmentAddr = segment;
+							return false;
 						}
 						if (segmentSize >= minSegmentSize && segmentSize < minSize)
 						{
 							minSize = segmentSize;
-							segmentAddress = currentAddress;
+							_segmentAddr = segment;
 						}
-						currentAddress = mainMemory[MemoryManager.NextPtrAddr(currentAddress)];
-					}
-					return minSize != int.MaxValue;
+						return true;
+					});
+					return (segmentAddress = _segmentAddr) != MemoryManager.NullPointer;
 				};
 			}
 		}
@@ -118,28 +93,24 @@
 			{
 				return (int headSegment, int[] mainMemory, int minSegmentSize, out int segmentAddress, out int segmentsInspected) =>
 				{
-					segmentsInspected = 0;
-					segmentAddress = MemoryManager.NullPointer;
-					int maxSize = int.MinValue,
-						currentAddress = headSegment,
-						segmentSize;
-					while (currentAddress != MemoryManager.NullPointer)
+					int _segmentAddr = MemoryManager.NullPointer,
+						maxSize = int.MinValue;
+					segmentsInspected = MemoryManager.TraverseFreeList(mainMemory, headSegment, segment =>
 					{
-						segmentsInspected++;
-						segmentSize = -mainMemory[currentAddress];
+						int segmentSize = -mainMemory[segment];
 						if (segmentSize == minSegmentSize)
 						{
-							segmentAddress = currentAddress;
-							return true;
+							_segmentAddr = segment;
+							return false;
 						}
 						if (segmentSize >= minSegmentSize && segmentSize > maxSize)
 						{
 							maxSize = segmentSize;
-							segmentAddress = currentAddress;
+							_segmentAddr = segment;
 						}
-						currentAddress = mainMemory[MemoryManager.NextPtrAddr(currentAddress)];
-					}
-					return maxSize != int.MinValue;
+						return true;
+					});
+					return (segmentAddress = _segmentAddr) != MemoryManager.NullPointer;
 				};
 			}
 		}
