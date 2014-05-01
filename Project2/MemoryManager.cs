@@ -40,9 +40,15 @@ namespace Project2
 			mainMemory[PrevPtrAddr(headFreeSegment)] = mainMemory[NextPtrAddr(headFreeSegment)] = 0;
 		}
 
+		public int FreeListHead { get { return headFreeSegment; } }
+
+		public int this[int addr]
+		{
+			get { return mainMemory[addr]; }
+		}
+
 		public bool Request(int count, out int allocation, out int holesExamined)
 		{
-			Console.WriteLine("{1}: Request({0})", count, counter++);
 			allocation = NullPointer;
 			holesExamined = 0;
 
@@ -62,7 +68,7 @@ namespace Project2
 			// for a free segment.
 			int minReservationSize = count + OverheadPerFreeSegment,
 				segmentAddr;
-			if (!strategy(headFreeSegment, mainMemory, minReservationSize, out segmentAddr, out holesExamined))
+			if (!strategy(this, minReservationSize, out segmentAddr, out holesExamined))
 				return false;
 
 			// Make sure the strategy didn't give us an invalid segment.
@@ -111,12 +117,8 @@ namespace Project2
 			return true;
 		}
 
-		private int counter = 0;
 		public void Release(int allocation)
 		{
-			Console.WriteLine("{1}: Release({0})", allocation, counter++);
-			if (counter == 174)
-				Console.WriteLine("!");
 			AssertStateCorrect();
 
 			int
@@ -225,12 +227,12 @@ namespace Project2
 			return segmentAddr + Math.Abs(mainMemory[segmentAddr]) - 1;
 		}
 
-		public static int NextPtrAddr(int segmentAddr)
+		public int NextPtrAddr(int segmentAddr)
 		{
 			return segmentAddr + 2;
 		}
 
-		public static int PrevPtrAddr(int segmentAddr)
+		public int PrevPtrAddr(int segmentAddr)
 		{
 			return segmentAddr + 1;
 		}
@@ -267,7 +269,7 @@ namespace Project2
 		private void AssertStateCorrect()
 		{
 			// Check linked list state.
-			TraverseFreeList(mainMemory, headFreeSegment, current =>
+			TraverseFreeList(headFreeSegment, current =>
 			{
 				Debug.Assert(mainMemory[current] != 0, "Linked list node points to element with value 0.");
 				// Make sure next and prev pointers both non-null.
@@ -290,7 +292,7 @@ namespace Project2
 				mainMemory[start + i] = 0;
 		}
 
-		public static int TraverseFreeList(int[] mainMemory, int startNode, Func<int, bool> visitor)
+		public int TraverseFreeList(int startNode, Func<int, bool> visitor)
 		{
 			int segmentsInspected = 0;
 			if (startNode == NullPointer)

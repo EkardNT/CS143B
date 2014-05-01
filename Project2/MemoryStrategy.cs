@@ -1,8 +1,7 @@
 ﻿namespace Project2
 {
 	public delegate bool MemoryStrategy(
-		int headSegment,
-		int[] mainMemory,
+		MemoryManager memory,
 		int minSegmentSize,
 		out int segmentAddress,
 		out int segmentsInspected);
@@ -13,12 +12,12 @@
 		{
 			get
 			{
-				return (int headSegment, int[] mainMemory, int minSegmentSize, out int segmentAddress, out int segmentsInspected) =>
+				return (MemoryManager memory, int minSegmentSize, out int segmentAddress, out int segmentsInspected) =>
 				{
 					int _segmentAddr = MemoryManager.NullPointer;
-					segmentsInspected = MemoryManager.TraverseFreeList(mainMemory, headSegment, segment =>
+					segmentsInspected = memory.TraverseFreeList(memory.FreeListHead, segment =>
 					{
-						if (-mainMemory[segment] >= minSegmentSize)
+						if (-memory[segment] >= minSegmentSize)
 						{
 							_segmentAddr = segment;
 							return false;
@@ -35,18 +34,18 @@
 			get
 			{
 				int nextStartAddr = MemoryManager.NullPointer;
-				return (int headSegment, int[] mainMemory, int minSegmentSize, out int segmentAddress, out int segmentsInspected) =>
+				return (MemoryManager memory, int minSegmentSize, out int segmentAddress, out int segmentsInspected) =>
 				{
 					if (nextStartAddr == MemoryManager.NullPointer)
-						nextStartAddr = headSegment;
-					else if (mainMemory[nextStartAddr] == 0)
-						nextStartAddr = headSegment;
+						nextStartAddr = memory.FreeListHead;
+					else if (memory[nextStartAddr] == 0)
+						nextStartAddr = memory.FreeListHead;
 					int _segmentAddr = MemoryManager.NullPointer;
-					segmentsInspected = MemoryManager.TraverseFreeList(mainMemory, nextStartAddr, segment =>
+					segmentsInspected = memory.TraverseFreeList(nextStartAddr, segment =>
 					{
-						if (-mainMemory[segment] >= minSegmentSize)
+						if (-memory[segment] >= minSegmentSize)
 						{
-							nextStartAddr = mainMemory[MemoryManager.NextPtrAddr(segment)];
+							nextStartAddr = memory[memory.NextPtrAddr(segment)];
 							if (nextStartAddr == segment)
 								nextStartAddr = MemoryManager.NullPointer;
 							_segmentAddr = segment;
@@ -63,13 +62,13 @@
 		{
 			get
 			{
-				return (int headSegment, int[] mainMemory, int minSegmentSize, out int segmentAddress, out int segmentsInspected) =>
+				return (MemoryManager memory, int minSegmentSize, out int segmentAddress, out int segmentsInspected) =>
 				{
 					int _segmentAddr = MemoryManager.NullPointer,
 						minSize = int.MaxValue;
-					segmentsInspected = MemoryManager.TraverseFreeList(mainMemory, headSegment, segment =>
+					segmentsInspected = memory.TraverseFreeList(memory.FreeListHead, segment =>
 					{
-						int segmentSize = -mainMemory[segment];
+						int segmentSize = -memory[segment];
 						if (segmentSize == minSegmentSize)
 						{
 							_segmentAddr = segment;
@@ -91,13 +90,13 @@
 		{
 			get
 			{
-				return (int headSegment, int[] mainMemory, int minSegmentSize, out int segmentAddress, out int segmentsInspected) =>
+				return (MemoryManager memory, int minSegmentSize, out int segmentAddress, out int segmentsInspected) =>
 				{
 					int _segmentAddr = MemoryManager.NullPointer,
 						maxSize = int.MinValue;
-					segmentsInspected = MemoryManager.TraverseFreeList(mainMemory, headSegment, segment =>
+					segmentsInspected = memory.TraverseFreeList(memory.FreeListHead, segment =>
 					{
-						int segmentSize = -mainMemory[segment];
+						int segmentSize = -memory[segment];
 						if (segmentSize == minSegmentSize)
 						{
 							_segmentAddr = segment;
