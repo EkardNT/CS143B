@@ -1,14 +1,14 @@
 ﻿namespace Project2
 {
-	public delegate bool MemoryStrategy(
+	public delegate bool AllocationStrategy(
 		MemoryManager memory,
 		int minSegmentSize,
 		out int segmentAddress,
 		out int segmentsInspected);
 
-	public static class MemoryStrategies
+	public static class AllocationStrategies
 	{
-		public static MemoryStrategy FirstFit
+		public static AllocationStrategy FirstFit
 		{
 			get
 			{
@@ -29,7 +29,7 @@
 			}
 		}
 
-		public static MemoryStrategy NextFit
+		public static AllocationStrategy NextFit
 		{
 			get
 			{
@@ -58,7 +58,7 @@
 			}
 		}
 
-		public static MemoryStrategy BestFit
+		public static AllocationStrategy BestFit
 		{
 			get
 			{
@@ -86,7 +86,7 @@
 			}
 		}
 
-		public static MemoryStrategy WorstFit
+		public static AllocationStrategy WorstFit
 		{
 			get
 			{

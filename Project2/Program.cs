@@ -74,11 +74,6 @@ namespace Project2
 
 		private static void Main()
 		{
-			//double avgS, avgU;
-			//Driver(10, 5, new Random(973102217), SimulationSteps, 100, MemoryStrategies.NextFit, out avgS, out avgU);
-			//Console.WriteLine("FINISHED");
-			//Console.Read();
-			//return;
 			var tasks = new List<Task>();
 
 			foreach(var @case in Cases)
@@ -106,7 +101,7 @@ namespace Project2
 									new Random(seed),
 									SimulationSteps,
 									caseCopy.MemorySize,
-									MemoryStrategies.NextFit,
+									AllocationStrategies.NextFit,
 									out averageSearchTime,
 									out averageMemoryUtilization);
 								nextFitWriter.WriteLine("{0},{1},{2:F4},{3:F4}", aCopy, dCopy, averageMemoryUtilization, averageSearchTime);
@@ -120,7 +115,7 @@ namespace Project2
 									new Random(seed),
 									SimulationSteps,
 									caseCopy.MemorySize,
-									MemoryStrategies.WorstFit,
+									AllocationStrategies.WorstFit,
 									out averageSearchTime,
 									out averageMemoryUtilization);
 								worstFitWriter.WriteLine("{0},{1},{2:F4},{3:F4}", aCopy, dCopy, averageMemoryUtilization, averageSearchTime);
@@ -141,7 +136,7 @@ namespace Project2
 			Random random,
 			int simulationSteps,
 			int memorySize,
-			MemoryStrategy strategy,
+			AllocationStrategy strategy,
 			out double averageSearchTime,
 			out double averageMemoryUtilization)
 		{

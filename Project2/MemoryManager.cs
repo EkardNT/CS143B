@@ -18,9 +18,9 @@ namespace Project2
 
 		private int headFreeSegment;
 		private readonly int[] mainMemory;
-		private readonly MemoryStrategy strategy;
+		private readonly AllocationStrategy strategy;
 
-		public MemoryManager(int memorySize, MemoryStrategy strategy)
+		public MemoryManager(int memorySize, AllocationStrategy strategy)
 		{
 			if (memorySize < OverheadPerFreeSegment)
 				throw new ArgumentOutOfRangeException("memorySize",
