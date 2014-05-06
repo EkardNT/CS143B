@@ -38,7 +38,7 @@
   <ItemGroup>
     <Compile Include="AllocationFailedException.cs" />
     <Compile Include="MemoryManager.cs" />
-    <Compile Include="MemoryStrategy.cs" />
+    <Compile Include="AllocationStrategy.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
