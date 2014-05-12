@@ -89,7 +89,6 @@ namespace Project2
 				int reservedAddr = segmentAddr + remainingSize;
 				mainMemory[reservedAddr] = minReservationSize;
 				mainMemory[EndTagAddr(reservedAddr)] = minReservationSize;
-				ClearMemory(reservedAddr + 1, minReservationSize - OverheadPerReservedSegment);
 
 				allocation = reservedAddr + OffsetToFirstUsableWord;
 
@@ -100,7 +99,6 @@ namespace Project2
 				int freeAddr = segmentAddr;
 				mainMemory[freeAddr] = -remainingSize;
 				mainMemory[EndTagAddr(freeAddr)] = -remainingSize;
-				ClearMemory(freeAddr + 3, remainingSize - OverheadPerFreeSegment);
 			}
 			else
 			{
@@ -111,7 +109,6 @@ namespace Project2
 				// Mark the segment as reserved.
 				mainMemory[segmentAddr] = segmentSize;
 				mainMemory[EndTagAddr(segmentAddr)] = segmentSize;
-				ClearMemory(segmentAddr + 1, segmentSize - OverheadPerReservedSegment);
 			}
 			AssertStateCorrect();
 			return true;
@@ -170,6 +167,7 @@ namespace Project2
 					prevAddr = coalescedAddr;
 				if (headFreeSegment == rightNeighborAddr)
 					headFreeSegment = segmentAddr;
+				ClearSegmentMetadata(rightNeighborAddr);
 			}
 			else if (leftNeighborFree && !rightNeighborFree)
 			{
@@ -182,6 +180,7 @@ namespace Project2
 				coalescedSize = mainMemory[segmentAddr] - mainMemory[leftNeighborAddr];
 				nextAddr = mainMemory[NextPtrAddr(leftNeighborAddr)];
 				prevAddr = mainMemory[PrevPtrAddr(leftNeighborAddr)];
+				ClearSegmentMetadata(segmentAddr);
 			}
 			else // if (leftNeighborFree && rightNeighborFree)
 			{
@@ -203,6 +202,8 @@ namespace Project2
 				coalescedSize = -mainMemory[leftNeighborAddr] + mainMemory[segmentAddr] - mainMemory[rightNeighborAddr];
 				nextAddr = mainMemory[NextPtrAddr(leftNeighborAddr)];
 				prevAddr = mainMemory[PrevPtrAddr(leftNeighborAddr)];
+				ClearSegmentMetadata(segmentAddr);
+				ClearSegmentMetadata(rightNeighborAddr);
 			}
 			// ReSharper restore ConditionIsAlwaysTrueOrFalse
 
@@ -214,7 +215,6 @@ namespace Project2
 			mainMemory[PrevPtrAddr(nextAddr)] = coalescedAddr;
 			Debug.Assert(prevAddr != NullPointer);
 			mainMemory[NextPtrAddr(prevAddr)] = coalescedAddr;
-			ClearMemory(coalescedAddr + 3, coalescedSize - OverheadPerFreeSegment);
 
 			Debug.Assert(headFreeSegment != 3);
 			Debug.Assert(headFreeSegment < 0 || mainMemory[headFreeSegment] < 0);
@@ -285,11 +285,13 @@ namespace Project2
 				return true;
 			});
 		}
-
-		private void ClearMemory(int start, int count)
+		
+		private void ClearSegmentMetadata(int segmentAddr)
 		{
-			for (int i = 0; i < count; i++)
-				mainMemory[start + i] = 0;
+			int nextAddr = NextPtrAddr(segmentAddr),
+				prevAddr = PrevPtrAddr(segmentAddr),
+				endAddr = EndTagAddr(segmentAddr);
+			mainMemory[segmentAddr] = mainMemory[nextAddr] = mainMemory[prevAddr] = mainMemory[endAddr] = 0;
 		}
 
 		public int TraverseFreeList(int startNode, Func<int, bool> visitor)
