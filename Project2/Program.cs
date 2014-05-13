@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace Project2
@@ -20,113 +21,99 @@ namespace Project2
 			}
 		}
 
-		private class Case
-		{
-			public int MemorySize;
-			public int AMin, AMax, AStep;
-			public int DMin, DMax, DStep;
-		}
-		
-		private static Case[] Cases =
-		{
-			new Case
-			{
-				MemorySize = 1000,
-				AMin = 10,
-				AMax = 300,
-				AStep = 29,
-				DMin = 10,
-				DMax = 200,
-				DStep = 19
-			},
-			new Case
-			{
-				MemorySize = 10000,
-				AMin = 100,
-				AMax = 3000,
-				AStep = 290,
-				DMin = 100,
-				DMax = 2000,
-				DStep = 190
-			},
-			new Case
-			{
-				MemorySize = 100000,
-				AMin = 1000,
-				AMax = 30000,
-				AStep = 2900,
-				DMin = 1000,
-				DMax = 20000,
-				DStep = 1900
-			},
-			new Case
-			{
-				MemorySize = 1000000,
-				AMin = 10000,
-				AMax = 300000,
-				AStep = 29000,
-				DMin = 10000,
-				DMax = 200000,
-				DStep = 19000
-			},
-		};
 		private const int SimulationSteps = 10000;
+		private static int[] MemorySizes = new[]
+		{
+			1000, 10000, 100000, 1000000
+		};
 
 		private static void Main()
 		{
 			var tasks = new List<Task>();
+			StringBuilder 
+				nextFitBuilder = new StringBuilder(),
+				worstFitBuilder = new StringBuilder();
 
-			foreach(var @case in Cases)
+			foreach(var memorySize in MemorySizes)
 			{
 				var rand = new Random();
-				using (var nextFitWriter = File.CreateText(string.Format("next_memory{0}.csv", @case.MemorySize)))
-				using (var worstFitWriter = File.CreateText(string.Format("worst_memory{0}.csv", @case.MemorySize)))
+				// Request size average in the range [0.1%, 20%] of main memory size.
+				for (int a = 1; a <= 200; a++)
 				{
-					nextFitWriter.WriteLine("Request Size Average,Request Size Std Dev,Average Memory Utilization,Average Search Time");
-					worstFitWriter.WriteLine("Request Size Average,Request Size Std Dev,Average Memory Utilization,Average Search Time");
-					for (int a = @case.AMin; a <= @case.AMax; a += @case.AStep)
+					// Request size standard deviation in the range [0.1%, 10%] of main memory size.
+					for (int d = 1; d <= 100; d++)
 					{
-						for (int d = @case.DMin; d <= @case.DMax; d += @case.DStep)
+						int aCopy = a,
+							dCopy = d;
+						double
+							requestSizeAverage = a / 10.0,
+							requestSizeStandardDeviation = d / 10.0;
+						double averageMemoryUtilization, averageSearchTime;
+						int seed = rand.Next();
+						tasks.Add(Task.Run(() =>
 						{
-							var caseCopy = @case;
-							int aCopy = a,
-								dCopy = d;
-							double averageMemoryUtilization, averageSearchTime;
-							int seed = rand.Next();
-							tasks.Add(Task.Run(() =>
+							Driver(
+								requestSizeAverage,
+								requestSizeStandardDeviation,
+								new Random(seed),
+								SimulationSteps,
+								memorySize,
+								AllocationStrategies.NextFit,
+								out averageSearchTime,
+								out averageMemoryUtilization);
+							lock (nextFitBuilder)
 							{
-								Driver(
-									aCopy,
-									dCopy,
-									new Random(seed),
-									SimulationSteps,
-									caseCopy.MemorySize,
-									AllocationStrategies.NextFit,
-									out averageSearchTime,
-									out averageMemoryUtilization);
-								nextFitWriter.WriteLine("{0},{1},{2:F4},{3:F4}", aCopy, dCopy, averageMemoryUtilization, averageSearchTime);
-								Console.WriteLine("Next fit: {0},{1},{2:F4},{3:F4},{4}", aCopy, dCopy, averageMemoryUtilization, averageSearchTime, caseCopy.MemorySize);
-							}));
-							tasks.Add(Task.Run(() =>
+								nextFitBuilder.AppendLine(string.Format("{0},{1},{2:F4},{3:F4}", requestSizeAverage, requestSizeStandardDeviation, averageMemoryUtilization, averageSearchTime));
+							}
+						}));
+						tasks.Add(Task.Run(() =>
+						{
+							Driver(
+								requestSizeAverage,
+								requestSizeStandardDeviation,
+								new Random(seed),
+								SimulationSteps,
+								memorySize,
+								AllocationStrategies.WorstFit,
+								out averageSearchTime,
+								out averageMemoryUtilization);
+							lock(worstFitBuilder)
 							{
-								Driver(
-									aCopy,
-									dCopy,
-									new Random(seed),
-									SimulationSteps,
-									caseCopy.MemorySize,
-									AllocationStrategies.WorstFit,
-									out averageSearchTime,
-									out averageMemoryUtilization);
-								worstFitWriter.WriteLine("{0},{1},{2:F4},{3:F4}", aCopy, dCopy, averageMemoryUtilization, averageSearchTime);
-								Console.WriteLine("Worst fit: {0},{1},{2:F4},{3:F4},{4}", aCopy, dCopy, averageMemoryUtilization, averageSearchTime, caseCopy.MemorySize);
-							}));
-						}
+								worstFitBuilder.AppendLine(string.Format("{0},{1},{2:F4},{3:F4}", requestSizeAverage, requestSizeStandardDeviation, averageMemoryUtilization, averageSearchTime));
+							}
+							if (dCopy % 20 == 0)
+								Console.WriteLine("a: {0}, d: {1}", aCopy, dCopy);
+						}));
 					}
-					Task.WaitAll(tasks.ToArray());
-					tasks.Clear();
-					Console.WriteLine("Woot!");
-				}				
+				}
+
+				Task.WaitAll(tasks.ToArray());
+				tasks.Clear();
+
+				tasks.Add(Task.Run(() =>
+				{
+					using (var nextFitWriter = File.CreateText(string.Format("next_memory{0}.csv", memorySize)))
+					{
+						nextFitWriter.WriteLine("Request Size Average,Request Size Std Dev,Average Memory Utilization,Average Search Time");
+						nextFitWriter.WriteLine(nextFitBuilder.ToString());
+					}
+				}));
+				tasks.Add(Task.Run(() =>
+				{
+					using (var worstFitWriter = File.CreateText(string.Format("worst_memory{0}.csv", memorySize)))
+					{
+						worstFitWriter.WriteLine("Request Size Average,Request Size Std Dev,Average Memory Utilization,Average Search Time");
+						worstFitWriter.WriteLine(worstFitBuilder.ToString());
+					}
+				}));
+
+				Task.WaitAll(tasks.ToArray());
+				tasks.Clear();
+
+				nextFitBuilder.Clear();
+				worstFitBuilder.Clear();
+
+				Console.WriteLine("Woot!");
 			}
 		}
 
