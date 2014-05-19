@@ -1,30 +1,7 @@
 ﻿using System;
 namespace Project3
 {
-	public interface ILogicalDisk
-	{
-		/// <summary>
-		/// Gets the number of logical blocks in the logical disk.
-		/// </summary>
-		int BlockCount { get; }
-		/// <summary>
-		/// Gets the size in bytes of a logical block.
-		/// </summary>
-		int BlockSize { get; }
-		/// <summary>
-		/// Reads data from a logical block into the given destination
-		/// buffer. The destination buffer must be at least as long
-		/// as the BlockSize.
-		/// </summary>
-		void ReadBlock(int block, byte[] destination);
-		/// <summary>
-		/// Writes data to a logical block from the given source buffer.
-		/// The source buffer must be at least as long as the BlockSize.
-		/// </summary>
-		void WriteBlock(int block, byte[] source);
-	}
-
-	public class LogicalDisk : ILogicalDisk
+	public class LogicalDisk
 	{
 		private readonly byte[,] disk;
 
@@ -35,9 +12,21 @@ namespace Project3
 			BlockSize = blockSize;
 		}
 
+		/// <summary>
+		/// Gets the number of logical blocks in the logical disk.
+		/// </summary>
 		public int BlockCount { get; private set; }
+
+		/// <summary>
+		/// Gets the size in bytes of a logical block.
+		/// </summary>
 		public int BlockSize { get; private set; }
 
+		/// <summary>
+		/// Reads data from a logical block into the given destination
+		/// buffer. The destination buffer must be at least as long
+		/// as the BlockSize.
+		/// </summary>
 		public void ReadBlock(int block, byte[] destination)
 		{
 			if (destination == null)
@@ -48,6 +37,10 @@ namespace Project3
 				destination[i] = disk[block, i];
 		}
 
+		/// <summary>
+		/// Writes data to a logical block from the given source buffer.
+		/// The source buffer must be at least as long as the BlockSize.
+		/// </summary>
 		public void WriteBlock(int block, byte[] source)
 		{
 			if (source == null)

@@ -58,4 +58,9 @@ namespace Project3
 	{
 
 	}
+
+	public class ExitCommand
+	{
+
+	}
 }

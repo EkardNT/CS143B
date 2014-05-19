@@ -46,6 +46,7 @@
     <Compile Include="Commands.cs" />
     <Compile Include="FileSystem.cs" />
     <Compile Include="LogicalDisk.cs" />
+    <Compile Include="MessageBoard.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

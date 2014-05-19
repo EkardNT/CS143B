@@ -108,7 +108,7 @@ namespace Project3
 
 	public class OpenCommandBuilder : CommandBuilder
 	{
-		public OpenCommandBuilder() : base("op", "op <name>", "Opens the file named <name> for reading and writing; outputs the file handle.") { }
+		public OpenCommandBuilder() : base("op", "op <name>", "Opens the file named <name> for reading and writing.") { }
 
 		public override bool TryBuildCommand(string[] args, out object command)
 		{
@@ -206,6 +206,17 @@ namespace Project3
 		public override bool TryBuildCommand(string[] args, out object command)
 		{
 			command = new HelpCommand();
+			return true;
+		}
+	}
+
+	public class ExitCommandBuilder : CommandBuilder
+	{
+		public ExitCommandBuilder() : base("exit", "exit", "Exits the program.") { }
+
+		public override bool TryBuildCommand(string[] args, out object command)
+		{
+			command = new ExitCommand();
 			return true;
 		}
 	}
