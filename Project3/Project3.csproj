@@ -41,6 +41,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BuilderRegistry.cs" />
+    <Compile Include="CommandBuilders.cs" />
+    <Compile Include="Commands.cs" />
     <Compile Include="FileSystem.cs" />
     <Compile Include="LogicalDisk.cs" />
     <Compile Include="Program.cs" />
