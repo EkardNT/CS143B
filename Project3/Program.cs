@@ -52,7 +52,14 @@ namespace Project3
 				}
 
 				// Dispatch.
-				messageBoard.Send(command);
+				try
+				{
+					messageBoard.Send(command);
+				}
+				catch(Exception e)
+				{
+					WriteErrorLine(string.Format("{0}: {1}", e.GetType().Name, e.Message));
+				}
 			}
 		}
 
@@ -76,52 +83,71 @@ namespace Project3
 
 		private static void On(CreateCommand command)
 		{
-			Console.WriteLine("Create");
+			fileSystem.Create(command.LogicalName);
+			WriteSuccessLine(string.Format("file {0} created", command.LogicalName));
 		}
 
 		private static void On(DestroyCommand command)
 		{
-			Console.WriteLine("Destroy");
+			fileSystem.Destroy(command.LogicalName);
+			WriteSuccessLine(string.Format("file {0} destroyed", command.LogicalName));
 		}
 
 		private static void On(OpenCommand command)
 		{
-			Console.WriteLine("Open");
+			int handle = fileSystem.Open(command.LogicalName);
+			WriteSuccessLine(string.Format("file {0} opened, index={1}", command.LogicalName, handle));
 		}
 
 		private static void On(CloseCommand command)
 		{
-			Console.WriteLine("Close");
+			fileSystem.Close(command.FileHandle);
+			WriteSuccessLine(string.Format("file {0} closed", command.FileHandle));
 		}
 
 		private static void On(ReadCommand command)
 		{
-			Console.WriteLine("Read");
+			var bytes = new byte[command.Count];
+			fileSystem.Read(command.FileHandle, bytes, command.Count);
+			WriteSuccess(string.Format("{0} bytes read: ", command.Count));
+			for (int i = 0; i < command.Count; i++)
+				WriteSuccess(((char)bytes[i]).ToString());
+			WriteSuccessLine("");
 		}
 
 		private static void On(WriteCommand command)
 		{
-			Console.WriteLine("Write");
+			var bytes = new byte[command.Count];
+			for (int i = 0; i < command.Count; i++)
+				bytes[i] = command.Data;
+			fileSystem.Write(command.FileHandle, bytes, command.Count);
+			WriteSuccessLine(string.Format("{0} bytes written", command.Count));
 		}
 
 		private static void On(SeekCommand command)
 		{
-			Console.WriteLine("Seek");
+			fileSystem.Seek(command.FileHandle, command.Position);
+			WriteSuccessLine(string.Format("current position is {0}", command.Position));
 		}
 
 		private static void On(DirectoryCommand command)
 		{
-			Console.WriteLine("Directory");
+			foreach (var file in fileSystem.Directory())
+				WriteSuccessLine(file);
 		}
 
 		private static void On(InitCommand command)
 		{
-			Console.WriteLine("Init");
+			fileSystem.Init(command.SerializationFilePath);
+			WriteSuccessLine(command.SerializationFilePath == null
+				? "disk initialized"
+				: "disk restored");
 		}
 
 		private static void On(SaveCommand command)
 		{
-			Console.WriteLine("Save");
+			fileSystem.Save(command.SerializationFilePath);
+			WriteSuccessLine("disk saved");
 		}
 
 		private static void On(HelpCommand command)
@@ -158,6 +184,20 @@ namespace Project3
 		{
 			Console.ForegroundColor = ConsoleColor.Yellow;
 			Console.WriteLine(text);
+			Console.ForegroundColor = ConsoleColor.White;
+		}
+
+		private static void WriteSuccessLine(string text)
+		{
+			Console.ForegroundColor = ConsoleColor.Green;
+			Console.WriteLine(text);
+			Console.ForegroundColor = ConsoleColor.White;
+		}
+
+		private static void WriteSuccess(string text)
+		{
+			Console.ForegroundColor = ConsoleColor.Green;
+			Console.Write(text);
 			Console.ForegroundColor = ConsoleColor.White;
 		}
 	}
