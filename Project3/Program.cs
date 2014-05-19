@@ -15,7 +15,7 @@ namespace Project3
 		public static void Main(string[] args)
 		{
 			builders = new BuilderRegistry();
-			fileSystem = new FileSystem(4096, 1024);
+			fileSystem = new FileSystem(64, 64);
 			var messageBoard = PrepareMessageBoard();
 
 			quit = false;

@@ -86,7 +86,7 @@ namespace Project3
 
 	public class CreateCommandBuilder : CommandBuilder
 	{
-		public CreateCommandBuilder() : base("cd", "cd <name>", "Creates a new file named <name>.") { }
+		public CreateCommandBuilder() : base("cr", "cr <name>", "Creates a new file named <name>.") { }
 
 		public override bool TryBuildCommand(string[] args, out object command)
 		{
