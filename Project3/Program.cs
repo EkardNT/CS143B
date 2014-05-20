@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Project3
 {
@@ -12,7 +8,7 @@ namespace Project3
 		private static FileSystem fileSystem;
 		private static bool quit;
 
-		public static void Main(string[] args)
+		public static void Main()
 		{
 			builders = new BuilderRegistry();
 			fileSystem = new FileSystem(64, 64);
@@ -34,7 +30,7 @@ namespace Project3
 				CommandBuilder builder;
 				if (!builders.TryGetBuilder(tokens[0], out builder))
 				{
-					WriteErrorLine("Unknown command.");
+					WriteErrorLine("unknown command.");
 					continue;
 				}
 
@@ -47,7 +43,7 @@ namespace Project3
 				object command;
 				if (!builder.TryBuildCommand(arguments, out command))
 				{
-					WriteErrorLine("Invalid arguments.");
+					WriteErrorLine("invalid arguments.");
 					continue;
 				}
 
@@ -166,10 +162,14 @@ namespace Project3
 			quit = true;
 		}
 
-		private static void WriteErrorLine(string text)
+		private static void WriteErrorLine(string error)
 		{
 			Console.ForegroundColor = ConsoleColor.Red;
-			Console.WriteLine(text);
+#if DEBUG
+			Console.WriteLine("error: " + error);
+#else
+			Console.WriteLine("error");
+#endif
 			Console.ForegroundColor = ConsoleColor.White;
 		}
 
