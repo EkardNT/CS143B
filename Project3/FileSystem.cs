@@ -3,11 +3,17 @@ namespace Project3
 {
 	public class FileSystem
 	{
+		private const int MaxOpenFiles = 4;
+
 		private LogicalDisk disk;
+		private OpenFileTableEntry[] openFileTable;
 
 		public FileSystem(int blockCount, int blockSize)
 		{
 			disk = new LogicalDisk(blockCount, blockSize);
+			openFileTable = new OpenFileTableEntry[MaxOpenFiles];
+			for (int i = 0; i < MaxOpenFiles; i++)
+				openFileTable[i] = new OpenFileTableEntry(blockSize);
 		}
 
 		/// <summary>
@@ -91,6 +97,31 @@ namespace Project3
 		public void Save(string serializationFilePath)
 		{
 			throw new System.NotImplementedException();
+		}
+	}
+
+	public class OpenFileTableEntry
+	{
+		/// <summary>
+		/// The read/write buffer containing one full block.
+		/// </summary>
+		public byte[] Buffer { get; private set; }
+		/// <summary>
+		/// The data pointer for the current file. This is the
+		/// absolute position within the file, not the position
+		/// within the block currently contained within the Buffer.
+		/// </summary>
+		public int DataPointer { get; set; }
+		/// <summary>
+		/// Index of the current file's descriptor.
+		/// </summary>
+		public int Descriptor { get; set; }
+
+		public OpenFileTableEntry(int blockSize)
+		{
+			Buffer = new byte[blockSize];
+			DataPointer = -1;
+			Descriptor = -1;
 		}
 	}
 }
