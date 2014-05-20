@@ -3,7 +3,7 @@ namespace Project3
 {
 	public abstract class CommandBuilder
 	{
-		private const int MaxLogicalNameLength = 4;
+		private const int MaxLogicalNameLength = 3;
 
 		public CommandBuilder(string shellCommand, string usage, string description)
 		{
