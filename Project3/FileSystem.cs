@@ -52,7 +52,7 @@ namespace Project3
 		#endregion
 		
 		private IDisk disk;
-		private BlockBitmap bitmap;
+		private OccupancyBitmap bitmap;
 		private OpenFileTable oft;
 
 		public FileSystem()
@@ -163,7 +163,7 @@ namespace Project3
 		{
 			// Allocate data structures
 			disk = new MemoryDisk(BlockCount, BlockSize);
-			bitmap = new BlockBitmap(disk);
+			bitmap = new OccupancyBitmap(disk);
 			oft = new OpenFileTable(disk, MaxOpenFiles);
 
 			// Create directory file descriptor.

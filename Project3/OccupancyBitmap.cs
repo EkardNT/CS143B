@@ -2,11 +2,11 @@
 
 namespace Project3
 {
-	public class BlockBitmap
+	public class OccupancyBitmap
 	{
 		private readonly BitArray bits, special;
 
-		public BlockBitmap(IDisk disk)
+		public OccupancyBitmap(IDisk disk)
 		{
 			bits = new BitArray(disk.BlockCount, false);
 			special = new BitArray(disk.BlockCount, false);
