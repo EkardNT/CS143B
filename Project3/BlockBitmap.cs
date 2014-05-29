@@ -4,20 +4,30 @@ namespace Project3
 {
 	public class BlockBitmap
 	{
-		private readonly int searchStart;
-		private readonly BitArray bits;
+		private readonly BitArray bits, special;
 
-		public BlockBitmap(IDisk disk, int bitmapBlockCount, int descriptorBlockCount)
+		public BlockBitmap(IDisk disk)
 		{
-			searchStart = bitmapBlockCount + descriptorBlockCount;
 			bits = new BitArray(disk.BlockCount, false);
-			for (int i = 0; i < searchStart; i++)
-				bits[i] = true;
+			special = new BitArray(disk.BlockCount, false);
+			// Mark the blocks required for the bitmap itself as special.
+			RequiredBlocksCount = disk.BlockCount / disk.BlockSize + (disk.BlockCount % disk.BlockSize == 0 ? 0 : 1);
+			for (int i = 0; i < RequiredBlocksCount; i++)
+				ReserveSpecial(i);
 		}
 
-		public int ReserveBlock()
+		public int RequiredBlocksCount { get; private set; }
+
+		public void ReserveSpecial(int block)
 		{
-			for(int i = searchStart; i < bits.Length; i++)
+			if (bits[block])
+				throw new FileSystemException("Cannot specially reserve block because it is already reserved.");
+			bits[block] = special[block] = true;
+		}
+
+		public int Reserve()
+		{
+			for(int i = 0; i < bits.Length; i++)
 				if (!bits[i])
 				{
 					bits[i] = true;
@@ -26,12 +36,12 @@ namespace Project3
 			throw new FileSystemException("Cannot reserve block because there are no free blocks.");
 		}
 
-		public void FreeBlock(int block)
+		public void Release(int block)
 		{
-			if (block < searchStart)
-				throw new FileSystemException("Cannot free a special file system reserved block.");
+			if (special[block])
+				throw new FileSystemException("Cannot release a special file-system-reserved block.");
 			if (!bits[block])
-				throw new FileSystemException("Cannot free a block which is already free.");
+				throw new FileSystemException("Cannot release a block which is already free.");
 			bits[block] = false;
 		}
 	}

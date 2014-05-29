@@ -163,10 +163,10 @@ namespace Project3
 		{
 			// Allocate data structures
 			disk = new MemoryDisk(BlockCount, BlockSize);
-			bitmap = new BlockBitmap(disk, BitmapBlocksCount, DescriptorBlocksCount);
+			bitmap = new BlockBitmap(disk);
 			oft = new OpenFileTable(disk, MaxOpenFiles);
 
-
+			// Create directory file descriptor.
 		}
 
 		private void InitFromFile(string serializationFilePath)
