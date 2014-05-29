@@ -56,7 +56,7 @@ namespace Project3
 				{
 					WriteErrorLine(e.Message);
 				}
-				catch (NotImplementedException e)
+				catch (NotImplementedException)
 				{
 					WriteErrorLine("not implemented");
 				}

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Project3
 {
-	public unsafe class FileSystem
+	public class FileSystem
 	{
 		#region Constants
 
@@ -28,7 +28,7 @@ namespace Project3
 			MaxBlocksPerFile = 3,
 			// Number of blocks required for the bitmap. The part after the addition
 			// accounts for when the BlockSize does not evenly divide the BlockCount.
-			NumBitmapBlocks = BlockCount / BlockSize + (BlockCount % BlockSize == 0 ? 0 : 1),
+			BitmapBlocksCount = BlockCount / BlockSize + (BlockCount % BlockSize == 0 ? 0 : 1),
 			// Maximum number of files that can be open at once,
 			// aka the number of entries in the open file table.
 			// Because the directory must always be open, the actual
@@ -38,101 +38,29 @@ namespace Project3
 			// of the file descriptor, only the number of bytes usable for actual storage
 			// of data.
 			MaxFileLength = MaxBlocksPerFile * BlockSize,
-			// Directory descriptor always in known location.
-			DirectoryDescriptorIndex = 0,
 			// Size of a descriptor in bytes.
 			DescriptorSize = sizeof (int) + sizeof (byte) * MaxBlocksPerFile,
 			// The maximum possible number of file descriptors, which will be reached 
 			// when the directory file is full.
 			MaxDescriptorCount = MaxFileLength / DescriptorSize,
 			// Number of blocks required to store all descriptors.
-			NumDescriptorBlocks =
+			DescriptorBlocksCount =
 				MaxDescriptorCount * DescriptorSize / BlockSize + ((MaxDescriptorCount * DescriptorSize) % BlockSize == 0 ? 0 : 1),
 			// Size of a directory entry in bytes.
 			DirectoryEntrySize = sizeof (int) + sizeof (byte) * MaxFileNameLength;
 
 		#endregion
-
-		#region Utility Classes/Structs
-
-		private class Descriptor
-		{
-			// Length in bytes of the file.
-			public int Length;
-			// Map containing the logical disk buffers that contain
-			// the parts of the file.
-			public int[] DiskMap { get; private set; }
-
-			public Descriptor()
-			{
-				Length = -1;
-				DiskMap = new int[MaxBlocksPerFile];
-				for (int i = 0; i < MaxBlocksPerFile; i++)
-					DiskMap[i] = -1;
-			}
-		}
-
-		private class DirectoryEntry
-		{
-			// Index of the descriptor describing this file.
-			public int DescriptorIndex;
-			// Name in UTF-8 encoding, without any C-string trailing NULL byte.
-			public byte[] Name { get; private set; }
-
-			public DirectoryEntry()
-			{
-				DescriptorIndex = -1;
-				Name = new byte[MaxFileNameLength];
-				for (int i = 0; i < MaxFileNameLength; i++)
-					Name[i] = 0;
-			}
-		}
-
-		private class OpenFileTableEntry
-		{
-			/// <summary>
-			/// The read/write buffer.
-			/// </summary>
-			public byte[] Buffer { get; private set; }
-
-			/// <summary>
-			/// The data pointer for the current file. This is the
-			/// absolute byte position within the file, not the position
-			/// within the block currently contained within the Buffer,
-			/// and not the physical address on disk.
-			/// </summary>
-			public int DataPointer { get; set; }
-
-			/// <summary>
-			/// Index of the current file's descriptor. Is -1 to indicate
-			/// this entry in the open file table is empty.
-			/// </summary>
-			public int Descriptor { get; set; }
-
-			public int DirectoryEntry { get; set; }
-
-			public OpenFileTableEntry(LogicalDisk disk)
-			{
-				Buffer = new byte[disk.BlockSize];
-				DataPointer = -1;
-				Descriptor = -1;
-				DirectoryEntry = -1;
-			}
-		}
-
-		#endregion
-
-		#region Fields
-
-		private LogicalDisk disk;
-		private OpenFileTableEntry[] openFileTable;
-
-		#endregion
+		
+		private IDisk disk;
+		private BlockBitmap bitmap;
+		private OpenFileTable oft;
 
 		public FileSystem()
 		{
 			InitEmpty();
 		}
+
+		#region File System API Methods
 
 		/// <summary>
 		/// Creates a new file with the given logical file name.
@@ -214,7 +142,7 @@ namespace Project3
 			if (serializationFilePath == null)
 				InitEmpty();
 			else
-				InitFile(serializationFilePath);
+				InitFromFile(serializationFilePath);
 		}
 
 		/// <summary>
@@ -227,14 +155,25 @@ namespace Project3
 			throw new NotImplementedException();
 		}
 
+		#endregion
+
+		#region Helper Methods
+
 		private void InitEmpty()
 		{
-			//
+			// Allocate data structures
+			disk = new MemoryDisk(BlockCount, BlockSize);
+			bitmap = new BlockBitmap(disk, BitmapBlocksCount, DescriptorBlocksCount);
+			oft = new OpenFileTable(disk, MaxOpenFiles);
+
+
 		}
 
-		private void InitFile(string serializationFilePath)
+		private void InitFromFile(string serializationFilePath)
 		{
 			throw new NotImplementedException();
 		}
+		
+		#endregion
 	}
 }
