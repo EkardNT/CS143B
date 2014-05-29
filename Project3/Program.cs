@@ -11,7 +11,7 @@ namespace Project3
 		public static void Main()
 		{
 			builders = new BuilderRegistry();
-			fileSystem = new FileSystem(64, 64);
+			fileSystem = new FileSystem();
 			var messageBoard = PrepareMessageBoard();
 
 			quit = false;
@@ -52,9 +52,9 @@ namespace Project3
 				{
 					messageBoard.Send(command);
 				}
-				catch(Exception e)
+				catch(FileSystemException e)
 				{
-					WriteErrorLine(string.Format("{0}: {1}", e.GetType().Name, e.Message));
+					WriteErrorLine(e.Message);
 				}
 			}
 		}

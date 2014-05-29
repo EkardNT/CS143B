@@ -21,6 +21,8 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -45,6 +47,7 @@
     <Compile Include="CommandBuilders.cs" />
     <Compile Include="Commands.cs" />
     <Compile Include="FileSystem.cs" />
+    <Compile Include="FileSystemException.cs" />
     <Compile Include="LogicalDisk.cs" />
     <Compile Include="MessageBoard.cs" />
     <Compile Include="Program.cs" />
