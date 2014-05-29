@@ -38,7 +38,7 @@ namespace Project3
 			int FileHandle { get; }
 		}
 
-		public class Entry : IEntry
+		private class Entry : IEntry
 		{
 			public byte[] Buffer { get; private set; }
 			public int Block { get; set; }
@@ -70,7 +70,7 @@ namespace Project3
 				entries[i] = new Entry(disk, i);
 		}
 
-		public Entry this[int fileHandle]
+		public IEntry this[int fileHandle]
 		{
 			get
 			{
@@ -81,7 +81,7 @@ namespace Project3
 			}
 		}
 
-		public Entry Directory
+		public IEntry Directory
 		{
 			get { return entries[DirectoryHandle]; }
 		}

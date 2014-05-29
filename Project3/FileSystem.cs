@@ -7,7 +7,7 @@ namespace Project3
 	{
 		#region Constants
 
-		private const int
+		public const int
 			// Maximum number of files that can be open at once,
 			// aka the number of entries in the open file table.
 			// Because the directory must always be open, the actual
@@ -24,11 +24,6 @@ namespace Project3
 			// number of files that the user can open at one time
 			// is one less than this value.
 			MaxFileNameLength = 3,
-			// Maximum number of blocks that can be allocated to a single file.
-			MaxBlocksPerFile = 3,
-			// Number of blocks required for the bitmap. The part after the addition
-			// accounts for when the BlockSize does not evenly divide the BlockCount.
-			BitmapBlocksCount = BlockCount / BlockSize + (BlockCount % BlockSize == 0 ? 0 : 1),
 			// Maximum number of files that can be open at once,
 			// aka the number of entries in the open file table.
 			// Because the directory must always be open, the actual
@@ -37,23 +32,17 @@ namespace Project3
 			// Maximum possible length of a file in bytes. This does not include the size
 			// of the file descriptor, only the number of bytes usable for actual storage
 			// of data.
-			MaxFileLength = MaxBlocksPerFile * BlockSize,
-			// Size of a descriptor in bytes.
-			DescriptorSize = sizeof (int) + sizeof (byte) * MaxBlocksPerFile,
+			MaxFileLength = DescriptorTable.MaxBlocksPerDescriptor * BlockSize,
 			// The maximum possible number of file descriptors, which will be reached 
 			// when the directory file is full.
-			MaxDescriptorCount = MaxFileLength / DescriptorSize,
-			// Number of blocks required to store all descriptors.
-			DescriptorBlocksCount =
-				MaxDescriptorCount * DescriptorSize / BlockSize + ((MaxDescriptorCount * DescriptorSize) % BlockSize == 0 ? 0 : 1),
-			// Size of a directory entry in bytes.
-			DirectoryEntrySize = sizeof (int) + sizeof (byte) * MaxFileNameLength;
+			DescriptorCount = MaxFileLength / DescriptorTable.DescriptorSize;
 
 		#endregion
 		
 		private IDisk disk;
 		private OccupancyBitmap bitmap;
 		private OpenFileTable oft;
+		private DescriptorTable descriptors;
 
 		public FileSystem()
 		{
@@ -165,8 +154,12 @@ namespace Project3
 			disk = new MemoryDisk(BlockCount, BlockSize);
 			bitmap = new OccupancyBitmap(disk);
 			oft = new OpenFileTable(disk, MaxOpenFiles);
+			descriptors = new DescriptorTable(disk, DescriptorCount);
 
-			// Create directory file descriptor.
+			// Set bits for occupancy bitmap and descriptors.
+			for (int i = 0; i < bitmap.RequiredBlocksCount + descriptors.RequiredBlocksCount; i++)
+				bitmap.SetReserved(i);
+
 		}
 
 		private void InitFromFile(string serializationFilePath)
