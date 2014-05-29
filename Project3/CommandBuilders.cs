@@ -190,7 +190,7 @@ namespace Project3
 
 	public class SaveCommandBuilder : CommandBuilder
 	{
-		public SaveCommandBuilder() : base("sv", "sv <path", "Closes all files and saves the state of the file system to the (real) file at <path>.") { }
+		public SaveCommandBuilder() : base("sv", "sv <path>", "Closes all files and saves the state of the file system to the (real) file at <path>.") { }
 
 		public override bool TryBuildCommand(string[] args, out object command)
 		{

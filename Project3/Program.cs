@@ -52,9 +52,13 @@ namespace Project3
 				{
 					messageBoard.Send(command);
 				}
-				catch(FileSystemException e)
+				catch (FileSystemException e)
 				{
 					WriteErrorLine(e.Message);
+				}
+				catch (NotImplementedException e)
+				{
+					WriteErrorLine("not implemented");
 				}
 			}
 		}
