@@ -2,37 +2,11 @@
 
 namespace Project3
 {
-	public interface IDisk
-	{
-		/// <summary>
-		/// Gets the number of blocks in the disk.
-		/// </summary>
-		int BlockCount { get; }
-
-		/// <summary>
-		/// Gets the size in bytes of a block.
-		/// </summary>
-		int BlockSize { get; }
-
-		/// <summary>
-		/// Reads data from a block into the given destination
-		/// buffer. The destination buffer must be at least as long
-		/// as the BlockSize.
-		/// </summary>
-		void ReadBlock(int block, byte[] destination);
-
-		/// <summary>
-		/// Writes data to a logical block from the given source buffer.
-		/// The source buffer must be at least as long as the BlockSize.
-		/// </summary>
-		void WriteBlock(int block, byte[] source);
-	}
-
-	public class MemoryDisk : IDisk
+	public class Disk
 	{
 		private readonly byte[,] disk;
 
-		public MemoryDisk(int blockCount, int blockSize)
+		public Disk(int blockCount, int blockSize)
 		{
 			disk = new byte[blockCount, blockSize];
 			BlockCount = blockCount;

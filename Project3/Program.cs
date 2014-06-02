@@ -10,6 +10,8 @@ namespace Project3
 
 		public static void Main()
 		{
+			var bytes = new byte[4];
+
 			builders = new BuilderRegistry();
 			fileSystem = new FileSystem();
 			var messageBoard = PrepareMessageBoard();
@@ -138,10 +140,16 @@ namespace Project3
 
 		private static void On(InitCommand command)
 		{
-			fileSystem.Init(command.SerializationFilePath);
-			WriteSuccessLine(command.SerializationFilePath == null
-				? "disk initialized"
-				: "disk restored");
+			if(command.SerializationFilePath == null)
+			{
+				fileSystem.Init();
+				WriteSuccessLine("disk initialized");
+			}
+			else
+			{
+				fileSystem.Load(command.SerializationFilePath);
+				WriteSuccessLine("disk restored");
+			}
 		}
 
 		private static void On(SaveCommand command)

@@ -44,8 +44,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DescriptorTable.cs" />
-    <Compile Include="OccupancyBitmap.cs" />
     <Compile Include="BuilderRegistry.cs" />
     <Compile Include="CommandBuilders.cs" />
     <Compile Include="Commands.cs" />
@@ -53,12 +51,14 @@
     <Compile Include="FileSystem.cs" />
     <Compile Include="FileSystemException.cs" />
     <Compile Include="MessageBoard.cs" />
-    <Compile Include="OpenFileTable.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <WCFMetadata Include="Service References\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
