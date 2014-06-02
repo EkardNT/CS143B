@@ -233,7 +233,9 @@ namespace Project3
 		/// </summary>
 		public int Read(int fileHandle, byte[] destination, int count)
 		{
-			return count;
+			if (fileHandle == 0)
+				throw new FileSystemException("Unable to read from system directory file.");
+			return FileRead(fileHandle, destination, count);
 		}
 
 		/// <summary>
@@ -243,7 +245,9 @@ namespace Project3
 		/// </summary>
 		public int Write(int fileHandle, byte[] source, int count)
 		{
-			return count;
+			if (fileHandle == 0)
+				throw new FileSystemException("Unable to write to system directory file.");
+			return FileWrite(fileHandle, source, count);
 		}
 
 		/// <summary>
@@ -397,41 +401,19 @@ namespace Project3
 			return entry;
 		}
 
-		private void FileWrite(int fileHandle, byte[] data, int count)
+		private void PageOftBuffer(OftEntry entry, Descriptor descriptor, int newBlockIndex)
 		{
-			if (fileHandle < 0 || fileHandle >= MaxOpenFiles)
-				throw new FileSystemException("Attempted to write to an invalid file handle.");
-			if (oft[fileHandle].DescriptorIndex == -1)
-				throw new FileSystemException("Attempted to write to an invalid");
-
-			var oftEntry = oft[fileHandle];
-			int finalPosition = oftEntry.DataPointer + count;
-			if (finalPosition > MaxFileLength)
-				throw new FileSystemException("Attempted to write beyond the maximum size of a file.");
-
-			var descriptor = ReadDescriptor(oftEntry.DescriptorIndex);
-			if (finalPosition > descriptor.Length)
-				FileResize(oftEntry.DescriptorIndex, descriptor, finalPosition);
-
-			for(int i = 0; i < count; i++)
-			{
-				int filePosition = oftEntry.DataPointer + i;
-				int fileBlock = filePosition / BlockSize;
-				if (oftEntry.FileBlock != fileBlock)
-					PageOftBuffer(oftEntry, descriptor, fileBlock);
-				int byteOffset = filePosition % BlockSize;
-				oftEntry.Buffer[byteOffset] = data[i];
-			}
-
-			oftEntry.DataPointer = finalPosition;
+			if(entry.FileBlock != -1)
+				disk.WriteBlock(descriptor.DiskMap[entry.FileBlock], entry.Buffer);
+			disk.ReadBlock(descriptor.DiskMap[entry.FileBlock = newBlockIndex], entry.Buffer);
 		}
 
-		private void FileRead(int fileHandle, byte[] data, int count)
+		private int FileRead(int fileHandle, byte[] destination, int count)
 		{
 			if (fileHandle < 0 || fileHandle >= MaxOpenFiles)
 				throw new FileSystemException("Attempted to read from an invalid file handle.");
 			if (oft[fileHandle].DescriptorIndex == -1)
-				throw new FileSystemException("Attempted to read from an invalid");
+				throw new FileSystemException("Attempted to read from an invalid file handle.");
 
 			var oftEntry = oft[fileHandle];
 			int finalPosition = oftEntry.DataPointer + count;
@@ -447,17 +429,41 @@ namespace Project3
 				if (oftEntry.FileBlock != fileBlock)
 					PageOftBuffer(oftEntry, descriptor, fileBlock);
 				int byteOffset = filePosition % BlockSize;
-				data[i] = oftEntry.Buffer[byteOffset];
+				destination[i] = oftEntry.Buffer[byteOffset];
 			}
 
 			oftEntry.DataPointer = finalPosition;
+			return count;
 		}
 
-		private void PageOftBuffer(OftEntry entry, Descriptor descriptor, int newBlockIndex)
+		private int FileWrite(int fileHandle, byte[] source, int count)
 		{
-			if(entry.FileBlock != -1)
-				disk.WriteBlock(descriptor.DiskMap[entry.FileBlock], entry.Buffer);
-			disk.ReadBlock(descriptor.DiskMap[entry.FileBlock = newBlockIndex], entry.Buffer);
+			if (fileHandle < 0 || fileHandle >= MaxOpenFiles)
+				throw new FileSystemException("Attempted to write to an invalid file handle.");
+			if (oft[fileHandle].DescriptorIndex == -1)
+				throw new FileSystemException("Attempted to write to an invalid file handle.");
+
+			var oftEntry = oft[fileHandle];
+			int finalPosition = oftEntry.DataPointer + count;
+			if (finalPosition > MaxFileLength)
+				throw new FileSystemException("Attempted to write beyond the maximum size of a file.");
+
+			var descriptor = ReadDescriptor(oftEntry.DescriptorIndex);
+			if (finalPosition > descriptor.Length)
+				FileResize(oftEntry.DescriptorIndex, descriptor, finalPosition);
+
+			for (int i = 0; i < count; i++)
+			{
+				int filePosition = oftEntry.DataPointer + i;
+				int fileBlock = filePosition / BlockSize;
+				if (oftEntry.FileBlock != fileBlock)
+					PageOftBuffer(oftEntry, descriptor, fileBlock);
+				int byteOffset = filePosition % BlockSize;
+				oftEntry.Buffer[byteOffset] = source[i];
+			}
+
+			oftEntry.DataPointer = finalPosition;
+			return count;
 		}
 
 		private void FileResize(int descriptorIndex, Descriptor descriptor, int newLength)
