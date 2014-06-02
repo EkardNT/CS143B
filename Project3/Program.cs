@@ -21,7 +21,7 @@ namespace Project3
 			while (!quit)
 			{
 				// Split input on whitespace.
-				var tokens = Console.ReadLine().Split();
+				var tokens = (Console.ReadLine() ?? "").Split();
 				if (tokens.Length == 0)
 					continue;
 
@@ -60,6 +60,8 @@ namespace Project3
 					WriteErrorLine("not implemented");
 				}
 			}
+
+			Console.ForegroundColor = ConsoleColor.Gray;
 		}
 
 		private static MessageBoard PrepareMessageBoard()

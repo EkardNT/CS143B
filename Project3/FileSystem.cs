@@ -191,6 +191,9 @@ namespace Project3
 			if (!SearchDirectory(nameBytes, out directoryEntryIndex, out descriptorIndex))
 				throw new FileSystemException("No such file exists.");
 
+			if (descriptorIndex == 0)
+				throw new FileSystemException("Cannot open the system directory file.");
+
 			int fileHandle;
 			if(SearchOpenFileTable(descriptorIndex, out fileHandle))
 				throw new FileSystemException("The file is already open.");
