@@ -50,7 +50,9 @@
     <Compile Include="Disk.cs" />
     <Compile Include="FileSystem.cs" />
     <Compile Include="FileSystemException.cs" />
+    <Compile Include="Input.cs" />
     <Compile Include="MessageBoard.cs" />
+    <Compile Include="Output.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

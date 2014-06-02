@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 
 namespace Project3
 {
@@ -6,6 +7,7 @@ namespace Project3
 	{
 		private static BuilderRegistry builders;
 		private static FileSystem fileSystem;
+		private static IOutput output;
 		private static bool quit;
 
 		public static void Main()
@@ -15,13 +17,25 @@ namespace Project3
 			fileSystem = new FileSystem();
 			quit = false;
 
-			Console.ForegroundColor = ConsoleColor.White;
+			IInput input;
+			PrepareIO(out input, out output);
+
+			try
+			{
+				input.Init();
+				output.Init();
+			}
+			catch (Exception e)
+			{
+				Console.WriteLine("Exception occurred while initializing input/output: {0}", e.Message);
+				return;
+			}
 
 			// Main loop.
-			while (!quit)
+			while (!quit && input.MoveNext())
 			{
 				// Split input on whitespace.
-				var tokens = (Console.ReadLine() ?? "").Split();
+				var tokens = input.CurrentInput.Split();
 				if (tokens.Length == 0)
 					continue;
 
@@ -61,7 +75,24 @@ namespace Project3
 				}
 			}
 
-			Console.ForegroundColor = ConsoleColor.Gray;
+			output.Dispose();
+			input.Dispose();
+		}
+
+		private static void PrepareIO(out IInput input, out IOutput output)
+		{
+			// If input.txt exists, read from there and output to my_student_id.txt.
+			if (File.Exists("input.txt"))
+			{
+				input = new ScriptInput("input.txt");
+				output = new TextFileOutput("35571095.txt");
+			}
+			// Otherwise read from and write to console.
+			else
+			{
+				input = new ConsoleInput();
+				output = new ConsoleOutput();
+			}
 		}
 
 		private static MessageBoard PrepareMessageBoard()
@@ -139,7 +170,7 @@ namespace Project3
 
 		private static void On(InitCommand command)
 		{
-			if(command.SerializationFilePath == null)
+			if (command.SerializationFilePath == null)
 			{
 				fileSystem.Init();
 				WriteSuccessLine("disk initialized");
@@ -159,7 +190,7 @@ namespace Project3
 
 		private static void On(HelpCommand command)
 		{
-			foreach(var builder in builders)
+			foreach (var builder in builders)
 			{
 				WriteHelp("- ");
 				WriteHelpLine(builder.Usage);
@@ -177,39 +208,31 @@ namespace Project3
 		{
 			Console.ForegroundColor = ConsoleColor.Red;
 #if DEBUG
-			Console.WriteLine("error: " + error);
+			output.WriteLine(Purpose.Error, error);
 #else
-			Console.WriteLine("error");
+			output.WriteLine(Purpose.Error, "error");
 #endif
 			Console.ForegroundColor = ConsoleColor.White;
 		}
 
 		private static void WriteHelp(string text)
 		{
-			Console.ForegroundColor = ConsoleColor.Yellow;
-			Console.Write(text);
-			Console.ForegroundColor = ConsoleColor.White;
+			output.Write(Purpose.Info, text);
 		}
 
 		private static void WriteHelpLine(string text)
 		{
-			Console.ForegroundColor = ConsoleColor.Yellow;
-			Console.WriteLine(text);
-			Console.ForegroundColor = ConsoleColor.White;
+			output.WriteLine(Purpose.Info, text);
 		}
 
 		private static void WriteSuccessLine(string text)
 		{
-			Console.ForegroundColor = ConsoleColor.Green;
-			Console.WriteLine(text);
-			Console.ForegroundColor = ConsoleColor.White;
+			output.WriteLine(Purpose.Success, text);
 		}
 
 		private static void WriteSuccess(string text)
 		{
-			Console.ForegroundColor = ConsoleColor.Green;
-			Console.Write(text);
-			Console.ForegroundColor = ConsoleColor.White;
+			output.Write(Purpose.Success, text);
 		}
 	}
 }
