@@ -30,8 +30,12 @@ namespace Project3
 				destination[i] = disk[block, i];
 		}
 
+		public bool AllowBitmapWrites { get; set; }
+
 		public void WriteBlock(int block, byte[] source)
 		{
+			if (block == 0 && !AllowBitmapWrites)
+				throw new FileSystemException("Writing to bitmap is not allowed.");
 			if (source == null)
 				throw new ArgumentNullException("source");
 			if (source.Length < BlockSize)

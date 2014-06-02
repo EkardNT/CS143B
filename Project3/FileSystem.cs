@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Linq;
 
 namespace Project3
 {
@@ -80,6 +81,7 @@ namespace Project3
 
 		private class DirEntry
 		{
+			// -1 if this entry is empty.
 			public int DescriptorIndex;
 			public byte[] Name;
 
@@ -107,7 +109,26 @@ namespace Project3
 		/// </summary>
 		public void Create(string fileName)
 		{
+			if (string.IsNullOrWhiteSpace(fileName))
+				throw new FileSystemException("Cannot create a file with a null, empty, or pure whitespace name.");
+			var nameBytes = Encoding.UTF8.GetBytes(fileName);
+			if (nameBytes.Length > MaxFileNameLength)
+				throw new FileSystemException("File name too long.");
+			int unused;
+			if (SearchDirectory(nameBytes, out unused))
+				throw new FileSystemException("Duplicate file name.");
 
+			int descriptorIndex = FindFreeDescriptor();
+			var descriptor = new Descriptor();
+			descriptor.Length = 0;
+			WriteDescriptor(descriptorIndex, descriptor);
+
+			int dirEntryIndex = FindFreeDirEntry();
+			var dirEntry = new DirEntry();
+			dirEntry.DescriptorIndex = descriptorIndex;
+			for (int i = 0; i < nameBytes.Length; i++)
+				dirEntry.Name[i] = nameBytes[i];
+			WriteDirEntry(dirEntryIndex, dirEntry);
 		}
 
 		/// <summary>
@@ -173,12 +194,11 @@ namespace Project3
 		{
 			var files = new List<string>();
 
-			int dirCount = DirEntryCount;
-			for(int i = 0; i < dirCount; i++)
+			for (int i = 0; i < DirectoryEntryCount; i++)
 			{
-				Seek(0, i * DirectoryEntrySize);
-				var dirEntry = ReadDirEntry();
-				files.Add(Encoding.UTF8.GetString(dirEntry.Name));
+				var dirEntry = ReadDirEntry(i);
+				if (dirEntry.DescriptorIndex != -1)
+					files.Add(Encoding.UTF8.GetString(dirEntry.Name.TakeWhile((val, index) => val != 0).ToArray()));
 			}
 
 			return files;
@@ -212,14 +232,20 @@ namespace Project3
 			var oftDir = oft[0];
 			oftDir.DescriptorIndex = 0;
 
-			// Write first and only entry of directory file,
-			// which describes the directory itself.
+			// Initialize the directory file.
 			var dirEntry = new DirEntry();
+			for (int i = 1; i < DirectoryEntryCount; i++)
+				WriteDirEntry(i, dirEntry);
+
+			// Create the directory entry which describes the
+			// directory itself.
 			dirEntry.DescriptorIndex = 0;
 			dirEntry.Name[0] = (byte)'d';
 			dirEntry.Name[1] = (byte)'i';
 			dirEntry.Name[2] = (byte)'r';
-			WriteDirEntry(dirEntry);
+			WriteDirEntry(0, dirEntry);
+
+			var dirDesc = ReadDescriptor(0);
 		}
 
 		/// <summary>
@@ -242,29 +268,35 @@ namespace Project3
 
 		#endregion
 
-		private int DirEntryCount
+		private bool SearchDirectory(byte[] name, out int descriptorIndex)
 		{
-			get
+			for(int i = 0; i < DirectoryEntryCount; i++)
 			{
-				var descriptor = ReadDescriptor(0);
-				if (descriptor.Length % DirectoryEntrySize != 0)
-					throw new FileSystemException("Directory file's descriptor length was not an even multiple of DirectoryEntrySize.");
-				return descriptor.Length / DirectoryEntrySize;
+				var entry = ReadDirEntry(i);
+				if (name.Zip(entry.Name, (e1, e2) => new { E1 = e1, E2 = e2 }).All(both => both.E1 == both.E2))
+				{
+					descriptorIndex = entry.DescriptorIndex;
+					return true;
+				}
 			}
+			descriptorIndex = -1;
+			return false;
 		}
 
-		private void WriteDirEntry(DirEntry entry)
+		private void WriteDirEntry(int dirEntryIndex, DirEntry entry)
 		{
 			var data = new byte[DirectoryEntrySize];
 			IntToBytes(data, 0, entry.DescriptorIndex);
 			for (int i = 0; i < MaxFileNameLength; i++)
 				data[sizeof(int) + i] = entry.Name[i];
+			Seek(0, dirEntryIndex * DirectoryEntrySize);
 			FileWrite(0, data, DirectoryEntrySize);
 		}
 
-		private DirEntry ReadDirEntry()
+		private DirEntry ReadDirEntry(int dirEntryIndex)
 		{
 			var data = new byte[DirectoryEntrySize];
+			Seek(0, dirEntryIndex * DirectoryEntrySize);
 			FileRead(0, data, DirectoryEntrySize);
 			var entry = new DirEntry();
 			entry.DescriptorIndex = BytesToInt(data, 0);
@@ -294,7 +326,7 @@ namespace Project3
 				int filePosition = oftEntry.DataPointer + i;
 				int fileBlock = filePosition / BlockSize;
 				if (oftEntry.FileBlock != fileBlock)
-					PageOftBuffer(oftEntry, fileBlock);
+					PageOftBuffer(oftEntry, descriptor, fileBlock);
 				int byteOffset = filePosition % BlockSize;
 				oftEntry.Buffer[byteOffset] = data[i];
 			}
@@ -321,7 +353,7 @@ namespace Project3
 				int filePosition = oftEntry.DataPointer + i;
 				int fileBlock = filePosition / BlockSize;
 				if (oftEntry.FileBlock != fileBlock)
-					PageOftBuffer(oftEntry, fileBlock);
+					PageOftBuffer(oftEntry, descriptor, fileBlock);
 				int byteOffset = filePosition % BlockSize;
 				data[i] = oftEntry.Buffer[byteOffset];
 			}
@@ -329,11 +361,11 @@ namespace Project3
 			oftEntry.DataPointer = finalPosition;
 		}
 
-		private void PageOftBuffer(OftEntry entry, int newBlockIndex)
+		private void PageOftBuffer(OftEntry entry, Descriptor descriptor, int newBlockIndex)
 		{
 			if(entry.FileBlock != -1)
-				disk.WriteBlock(entry.FileBlock, entry.Buffer);
-			disk.ReadBlock(entry.FileBlock = newBlockIndex, entry.Buffer);
+				disk.WriteBlock(descriptor.DiskMap[entry.FileBlock], entry.Buffer);
+			disk.ReadBlock(descriptor.DiskMap[entry.FileBlock = newBlockIndex], entry.Buffer);
 		}
 
 		private void FileResize(int descriptorIndex, Descriptor descriptor, int newLength)
@@ -423,14 +455,34 @@ namespace Project3
 				if (!GetBitmapBit(i))
 					return i;
 			}
-			throw new FileSystemException("No free disk blocks found to reserve.");
+			throw new FileSystemException("No free disk blocks found.");
+		}
+
+		private int FindFreeDescriptor()
+		{
+			for(int i = 0; i < DescriptorCount; i++)
+			{
+				if (ReadDescriptor(i).Length == -1)
+					return i;
+			}
+			throw new FileSystemException("No free descriptor found.");
+		}
+
+		private int FindFreeDirEntry()
+		{
+			for(int i = 0; i < DirectoryEntryCount; i++)
+			{
+				if (ReadDirEntry(i).DescriptorIndex == -1)
+					return i;
+			}
+			throw new FileSystemException("No free directory entry found.");
 		}
 
 		private void SetBitmapBit(int blockIndex, bool bitValue)
 		{
 			if (blockIndex < 0 || blockIndex >= BlockCount)
 				throw new FileSystemException("Attempted to set bitmap bit outside of legal range.");
-			
+				
 			int blockOffset = blockIndex / BlockSize;
 			int byteOffset = blockIndex / 8;
 			int bitOffset = blockIndex % 8;
@@ -443,7 +495,9 @@ namespace Project3
 			else
 				block[byteOffset] &= (byte)~(1 << bitOffset);
 
+			disk.AllowBitmapWrites = true;
 			disk.WriteBlock(blockOffset, block);
+			disk.AllowBitmapWrites = false;
 		}
 
 		private bool GetBitmapBit(int blockIndex)

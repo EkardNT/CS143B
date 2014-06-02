@@ -10,12 +10,9 @@ namespace Project3
 
 		public static void Main()
 		{
-			var bytes = new byte[4];
-
+			var messageBoard = PrepareMessageBoard();
 			builders = new BuilderRegistry();
 			fileSystem = new FileSystem();
-			var messageBoard = PrepareMessageBoard();
-
 			quit = false;
 
 			Console.ForegroundColor = ConsoleColor.White;
