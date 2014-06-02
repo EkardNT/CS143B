@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Linq;
+using System.IO;
 
 namespace Project3
 {
@@ -208,22 +209,9 @@ namespace Project3
 		/// </summary>
 		public void Close(int fileHandle)
 		{
-			if (fileHandle < 0 || fileHandle >= MaxOpenFiles)
-				throw new FileSystemException("Attempted to close a file with an invalid file handle.");
-			if (oft[fileHandle].DescriptorIndex == -1)
-				throw new FileSystemException("Attempted to close an already closed file handle.");
-
-			var entry = oft[fileHandle];
-			// Flush buffer to disk.
-			if(entry.FileBlock != -1)
-			{
-				var descriptor = ReadDescriptor(entry.DescriptorIndex);
-				disk.WriteBlock(descriptor.DiskMap[entry.FileBlock], entry.Buffer);
-			}
-			// Clear entry.
-			entry.DataPointer = 0;
-			entry.DescriptorIndex = -1;
-			entry.FileBlock = -1;
+			if (fileHandle == 0)
+				throw new FileSystemException("Unable to close system directory file.");
+			FileClose(fileHandle);
 		}
 
 		/// <summary>
@@ -329,7 +317,38 @@ namespace Project3
 		/// </summary>
 		public void Load(string serializationFilePath)
 		{
+			// Clear existing data. This also has the effect
+			// of opening the directory file only.
+			Init();
+			FileStream file;
 
+			try
+			{
+				file = File.Open(serializationFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+			}
+			catch(Exception)
+			{
+				throw new FileSystemException("Unable to open serialization file.");
+			}
+
+			using(var reader = new BinaryReader(file, Encoding.UTF8, false))
+			{
+				var me = reader.ReadString();
+				if (me != "Drake Tetreault, UCI ID 35571095")
+					throw new FileSystemException("Improperly formatted serialization file.");
+
+				int blockCount = reader.ReadInt32();
+				int blockSize = reader.ReadInt32();
+				if (blockCount != BlockCount || blockSize != BlockSize)
+					throw new FileSystemException(string.Format("Serialization file specified different disk dimensions than BlockSize={0}, BlockCount={1}, which is unsupported.", BlockSize, BlockCount));
+
+				var block = new byte[blockSize];
+				for(int i = 0; i < blockCount; i++)
+				{
+					file.Read(block, 0, blockSize);
+					disk.WriteBlock(i, block);
+				}
+			}
 		}
 
 		/// <summary>
@@ -339,6 +358,41 @@ namespace Project3
 		/// </summary>
 		public void Save(string serializationFilePath)
 		{
+			FileStream file;
+
+			try
+			{
+				file = File.Open(serializationFilePath, FileMode.Create, FileAccess.Write, FileShare.None);
+			}
+			catch(Exception)
+			{
+				throw new FileSystemException("Unable to create serialization file.");
+			}
+
+			// Flush all open file buffers and close them.
+			for(int i = 0; i < MaxOpenFiles; i++)
+			{
+				if (oft[i].DescriptorIndex != -1)
+					FileClose(i);
+			}
+
+			using(var writer = new BinaryWriter(file, Encoding.UTF8, false))
+			{
+				// Me
+				writer.Write("Drake Tetreault, UCI ID 35571095");
+
+				// Dimensions
+				writer.Write(BlockCount);
+				writer.Write(BlockSize);
+
+				// Disk
+				var block = new byte[BlockSize];
+				for(int i = 0; i < BlockCount; i++)
+				{
+					disk.ReadBlock(i, block);
+					file.Write(block, 0, BlockSize);
+				}
+			}
 		}
 
 		#endregion
@@ -406,6 +460,26 @@ namespace Project3
 			if(entry.FileBlock != -1)
 				disk.WriteBlock(descriptor.DiskMap[entry.FileBlock], entry.Buffer);
 			disk.ReadBlock(descriptor.DiskMap[entry.FileBlock = newBlockIndex], entry.Buffer);
+		}
+
+		private void FileClose(int fileHandle)
+		{
+			if (fileHandle < 0 || fileHandle >= MaxOpenFiles)
+				throw new FileSystemException("Attempted to close a file with an invalid file handle.");
+			if (oft[fileHandle].DescriptorIndex == -1)
+				throw new FileSystemException("Attempted to close an already closed file handle.");
+
+			var entry = oft[fileHandle];
+			// Flush buffer to disk.
+			if (entry.FileBlock != -1)
+			{
+				var descriptor = ReadDescriptor(entry.DescriptorIndex);
+				disk.WriteBlock(descriptor.DiskMap[entry.FileBlock], entry.Buffer);
+			}
+			// Clear entry.
+			entry.DataPointer = 0;
+			entry.DescriptorIndex = -1;
+			entry.FileBlock = -1;
 		}
 
 		private int FileRead(int fileHandle, byte[] destination, int count)
