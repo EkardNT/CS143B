@@ -260,7 +260,7 @@ namespace Project3
 			for (int i = 0; i < DirectoryEntryCount; i++)
 			{
 				var dirEntry = ReadDirEntry(i);
-				if (dirEntry.DescriptorIndex != -1)
+				if (dirEntry.DescriptorIndex != -1 && dirEntry.DescriptorIndex != 0)
 					files.Add(Encoding.UTF8.GetString(dirEntry.Name.TakeWhile((val, index) => val != 0).ToArray()));
 			}
 
@@ -317,9 +317,12 @@ namespace Project3
 		/// </summary>
 		public void Load(string serializationFilePath)
 		{
-			// Clear existing data. This also has the effect
-			// of opening the directory file only.
+			// Clear existing data.
 			Init();
+			// Open directory file.
+			FileClose(0);
+			oft[0].DescriptorIndex = 0;
+
 			FileStream file;
 
 			try
