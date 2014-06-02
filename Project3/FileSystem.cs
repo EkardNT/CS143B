@@ -114,8 +114,8 @@ namespace Project3
 			var nameBytes = Encoding.UTF8.GetBytes(fileName);
 			if (nameBytes.Length > MaxFileNameLength)
 				throw new FileSystemException("File name too long.");
-			int unused;
-			if (SearchDirectory(nameBytes, out unused))
+			int unused1, unused2;
+			if (SearchDirectory(nameBytes, out unused1, out unused2))
 				throw new FileSystemException("Duplicate file name.");
 
 			int descriptorIndex = FindFreeDescriptor();
@@ -136,6 +136,41 @@ namespace Project3
 		/// </summary>
 		public void Destroy(string fileName)
 		{
+			if (string.IsNullOrWhiteSpace(fileName))
+				throw new FileSystemException("Cannot destroy a file with a null, empty, or pure whitespace name.");
+			var nameBytes = Encoding.UTF8.GetBytes(fileName);
+			if (nameBytes.Length > MaxFileNameLength)
+				throw new FileSystemException("File name too long.");
+
+			int descriptorIndex, directoryEntryIndex;
+			if (!SearchDirectory(nameBytes, out directoryEntryIndex, out descriptorIndex))
+				throw new FileSystemException("No such file exists.");
+			if (descriptorIndex == 0)
+				throw new FileSystemException("Cannot delete system directory file.");
+
+			// Close open file table if neccessary.
+			int fileHandle;
+			if (SearchOpenFileTable(descriptorIndex, out fileHandle))
+				Close(fileHandle);
+
+			// Clear the entry from the directory file.
+			var dirEntry = new DirEntry();
+			WriteDirEntry(directoryEntryIndex, dirEntry);
+
+			// Destroy descriptor.
+			var descriptor = ReadDescriptor(descriptorIndex);
+			// Free reserved blocks.
+			for(int i = 0; i < MaxBlocksPerFile; i++)
+			{
+				// Break as soon as we find the first non-reserved index.
+				if (descriptor.DiskMap[i] == -1)
+					break;
+				SetBitmapBit(descriptor.DiskMap[i], false);
+				ClearBlock(descriptor.DiskMap[i]);
+				descriptor.DiskMap[i] = -1;
+			}
+			descriptor.Length = -1;
+			WriteDescriptor(descriptorIndex, descriptor);
 		}
 
 		/// <summary>
@@ -268,18 +303,39 @@ namespace Project3
 
 		#endregion
 
-		private bool SearchDirectory(byte[] name, out int descriptorIndex)
+		private void ClearBlock(int blockIndex)
+		{
+			var data = new byte[BlockSize];
+			disk.WriteBlock(blockIndex, data);
+		}
+
+		private bool SearchOpenFileTable(int descriptorIndex, out int fileHandle)
+		{
+			for(int i = 0; i < MaxOpenFiles; i++)
+			{
+				if(oft[i].DescriptorIndex == descriptorIndex)
+				{
+					fileHandle = i;
+					return true;
+				}
+			}
+			fileHandle = -1;
+			return false;
+		}
+
+		private bool SearchDirectory(byte[] name, out int directoryEntryIndex, out int descriptorIndex)
 		{
 			for(int i = 0; i < DirectoryEntryCount; i++)
 			{
 				var entry = ReadDirEntry(i);
 				if (name.Zip(entry.Name, (e1, e2) => new { E1 = e1, E2 = e2 }).All(both => both.E1 == both.E2))
 				{
+					directoryEntryIndex = i;
 					descriptorIndex = entry.DescriptorIndex;
 					return true;
 				}
 			}
-			descriptorIndex = -1;
+			directoryEntryIndex = descriptorIndex = -1;
 			return false;
 		}
 
