@@ -180,7 +180,27 @@ namespace Project3
 		/// </summary>
 		public int Open(string fileName)
 		{
-			return -1;
+			if (string.IsNullOrWhiteSpace(fileName))
+				throw new FileSystemException("Cannot open a file with a null, empty, or pure whitespace name.");
+			var nameBytes = Encoding.UTF8.GetBytes(fileName);
+			if (nameBytes.Length > MaxFileNameLength)
+				throw new FileSystemException("File name too long.");
+
+			int descriptorIndex, directoryEntryIndex;
+			if (!SearchDirectory(nameBytes, out directoryEntryIndex, out descriptorIndex))
+				throw new FileSystemException("No such file exists.");
+
+			int fileHandle;
+			if(SearchOpenFileTable(descriptorIndex, out fileHandle))
+				throw new FileSystemException("The file is already open.");
+
+			fileHandle = FindFreeFileHandle();
+			var entry = oft[fileHandle];
+			entry.DescriptorIndex = descriptorIndex;
+			entry.FileBlock = -1;
+			entry.DataPointer = 0;
+
+			return fileHandle;
 		}
 
 		/// <summary>
@@ -188,6 +208,22 @@ namespace Project3
 		/// </summary>
 		public void Close(int fileHandle)
 		{
+			if (fileHandle < 0 || fileHandle >= MaxOpenFiles)
+				throw new FileSystemException("Attempted to close a file with an invalid file handle.");
+			if (oft[fileHandle].DescriptorIndex == -1)
+				throw new FileSystemException("Attempted to close an already closed file handle.");
+
+			var entry = oft[fileHandle];
+			// Flush buffer to disk.
+			if(entry.FileBlock != -1)
+			{
+				var descriptor = ReadDescriptor(entry.DescriptorIndex);
+				disk.WriteBlock(descriptor.DiskMap[entry.FileBlock], entry.Buffer);
+			}
+			// Clear entry.
+			entry.DataPointer = 0;
+			entry.DescriptorIndex = -1;
+			entry.FileBlock = -1;
 		}
 
 		/// <summary>
@@ -503,6 +539,16 @@ namespace Project3
 			uVal |= (uint)bytes[offset + 3] << 24;
 			return (int)uVal;
 		}
+
+		private int FindFreeFileHandle()
+		{
+			for(int i = 0; i < MaxOpenFiles; i++)
+			{
+				if (oft[i].DescriptorIndex == -1)
+					return i;
+			}
+			throw new FileSystemException("No free file handle found.");
+		}
 		
 		private int FindFreeBlock()
 		{
@@ -551,9 +597,7 @@ namespace Project3
 			else
 				block[byteOffset] &= (byte)~(1 << bitOffset);
 
-			disk.AllowBitmapWrites = true;
 			disk.WriteBlock(blockOffset, block);
-			disk.AllowBitmapWrites = false;
 		}
 
 		private bool GetBitmapBit(int blockIndex)
